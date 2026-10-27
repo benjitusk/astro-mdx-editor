@@ -8,7 +8,9 @@ re-serialising, so opening and saving a file changes no bytes.
   (`##`, `>`, list numbers) hang in the margin, so the text never jumps.
 - **Your theme, live.** The editor sits inside your site's own layout and `Prose` wrapper (a small
   `Shell.astro` you own).
-- **Real components.** Components render through your actual MDX pipeline (in progress, phase 2).
+- **Real components.** Components render through your actual MDX pipeline. Put the cursor inside one to
+  edit its children; click its chip (or Cmd-Alt-,) for a props form built from the component's `Props`.
+- **Slash menu.** `/` at the start of a line inserts a component, with its required props, or a block.
 - **A full keyboard suite.** Cmd-P shows every command. Cmd-Shift-/ shows the cheat sheet.
 - **Dev only.** Nothing from the editor ends up in `astro build`.
 

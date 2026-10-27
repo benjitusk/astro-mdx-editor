@@ -47,3 +47,17 @@
   the site's shortcode table.
 - The selection is drawn as a tint over the text, so it shows on cards and frames.
 - `callouts` and `emoji` options.
+- Component registry (`GET /__edit/api/registry`): the components an entry can use (globals, its
+  imports, and those other entries import), each with its props read from `Props` (TypeScript parser),
+  defaults, JSDoc, header comment, and its usual form in the collection.
+- Props popover: a form for an element's opening tag, from a click on the chip, a click on a render's
+  own text (a headword, an attribution: that prop is focused), or Cmd-Alt-,. Each edit rewrites only
+  that prop's text; strings keep the file's quote style; expressions stay expressions. Self-closing
+  elements open it on click instead of showing raw MDX.
+- Slash menu: `/` at the start of a line lists components (docs beside them) and Markdown blocks. A
+  component goes in with its required props, blank lines and any import line it needs, and the cursor
+  in its frame; required props open the popover. Also "Insert component…" in the palette.
+- Empty elements (`<Pull></Pull>`, a block with only blank lines) get a frame to type into, and a blank
+  line between a block's tags joins the frame when the cursor is on it (Enter after the last paragraph
+  no longer drops to raw MDX).
+- Renders send the editor's current imports, so a newly imported component renders before the save.

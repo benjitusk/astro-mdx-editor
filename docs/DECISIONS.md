@@ -90,10 +90,12 @@ off.
 ## 13. Raw mode is temporary, and tags edit raw (2026-10-27)
 
 **Decision.** `</>` / Cmd-Enter shows an element as raw MDX only until the cursor leaves it. A cursor
-inside a tag (from search, undo or a click on the chip) also shows that element raw. Self-closing and
+inside a tag (from search or undo) also shows that element raw. Self-closing and
 empty elements always edit raw.
 **Why.** That matches "the cursor elsewhere shows the render" without a mode to remember. It also lets
 props be edited directly until the props editor lands in phase 4.
+**Revised in phase 4 (see 17).** Self-closing elements are edited through the props popover, and empty
+elements get a frame to type into. A cursor in a tag still shows it raw.
 
 ## 14. Callout looks are measured from the site, not restyled (2026-10-27)
 
@@ -111,3 +113,27 @@ is near. The caret steps over them, and Backspace deletes them whole. A callout'
 a picker (Cmd-Shift-C or a click on the icon).
 **Why.** Expanding them under the cursor, as Obsidian does, shifts the text the user just clicked on
 (design rule: reveals never move text). Treating an emoji as one character is also how it reads.
+
+## 16. Props come from parsing the component's source, not type-checking (2026-10-27)
+
+**Decision.** The registry reads each component with the TypeScript parser alone: `interface Props` in
+an `.astro` frontmatter, or the first parameter's type of a React component, plus the defaults in its
+destructuring and the JSDoc on each prop and on the component. A prop's editor follows its written
+type: a string-literal union is a select, `string` text, `number` and `boolean` their inputs, and
+anything else an `{expression}`.
+**Why.** A type checker would need the site's whole program and takes seconds; the parser takes
+milliseconds and only needs the one file. The components in both sites write their props as plain
+interfaces, which is the case that matters. A type it can't read (an imported alias) falls back to an
+expression, which is always correct to write.
+
+## 17. Components are inserted the way the collection writes them (2026-10-27)
+
+**Decision.** The slash menu writes a component in its most common form across the collection (a block
+with blank lines, one line, or self-closing), with its required props in the collection's usual quote
+style. With no usage to go on, a component without a slot is self-closing and one with a slot is a
+block. Required props open the popover straight away. A component other entries import gets their
+import line (re-pathed for this entry). Empty elements get a frame, so the inserted block is ready to
+type into, and so does a blank line the cursor is on between a block's tags.
+**Why.** Each site has its own conventions (`word='x'` and blank lines in thoughts, `variant="x"` and
+indented children in the notebook). Copying what's already there keeps new text consistent without
+a per-component config.

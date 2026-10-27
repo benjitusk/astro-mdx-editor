@@ -203,3 +203,24 @@ Markdown) instead of through `POST /render`; `[ ]`/`[x]` are checkboxes. A table
 the selection is in it.
 **Why.** Both are plain Markdown the site styles through Prose's descendant rules, so a client-side
 `<table>` looks the same, appears without a round trip, and keeps each cell's source offset for clicks.
+
+## 25. Commits take only the entry and its images, and never push (2026-10-27)
+
+**Decision.** The Commit button saves, then runs `git add` and `git commit --only -m <message> -- <files>`
+with the open entry and the images it references that git reports as new or changed. Anything else
+staged stays staged. There is no push.
+**Why.** The editor knows what the writer touched in this session: one entry and the images pasted into
+it. `--only` keeps other work in the index out of the commit. Pushing thoughts' main deploys the site,
+so publishing stays a deliberate step outside the editor.
+
+## 26. Focus mode is Cmd-Alt-., not Cmd-. (2026-10-27)
+
+**Decision.** Focus mode defaults to Cmd-Alt-. (remappable as `app.focus`).
+**Why.** On macOS, Cmd-. is the system's cancel shortcut and doesn't reach the page as a key press.
+
+## 27. The scratchpad lives in the browser, never in the file (2026-10-27)
+
+**Decision.** Each entry's scratchpad is kept in `localStorage` under `mdx-editor:scratch:<collection>/<id>`,
+with every read and write in `try`/`catch`; it has the editor's live preview but no saving to disk.
+**Why.** Notes to self shouldn't end up in the essay, in git, or on the site. Losing them with the browser's
+storage is the accepted cost.

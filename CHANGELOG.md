@@ -100,6 +100,20 @@
 - engineering-notebook is set up: Shell around `BlogPost`, the title edited in place, `console` callouts,
   and images inserted as an import plus `<Figure>`.
 
+- New entries: a form per collection on `/__edit` (`POST /__edit/api/new`) writes the title as a slug with
+  the collection's `newEntry(title)` frontmatter (dates as `YYYY-MM-DD`, missing required fields filled)
+  and opens it once the content layer has it. The index takes reloads as events, like editor tabs.
+- Writing aids: a live word count and reading time (prose only; a selection shows its share), a heading
+  outline (Cmd-Shift-O), and focus mode (Cmd-Alt-.) that fades everything but the block being written.
+- Quick open (Cmd-O) for the site's other entries.
+- Scratchpad (Cmd-J): a note per entry with the same live preview, in `localStorage` only
+  (`mdx-editor:scratch:<collection>/<id>`).
+- Changes and commit (Cmd-Shift-G): the entry against HEAD (`@codemirror/merge`), and a Commit button
+  (`POST /__edit/api/commit`) that commits only the entry and the images it newly references. No push.
+- Live page (Cmd-\\): the collection's `pageUrl` in a pane beside the editor, refreshed by Astro after
+  each save.
+- `newEntry` collection option.
+
 ### Fixed
 
 - CodeMirror's zero-width cursor anchors (`<img>`) picked up a site's `img` border, showing faint marks

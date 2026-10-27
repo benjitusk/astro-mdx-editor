@@ -69,6 +69,29 @@ rendered for the editor, e.g. `<h1 data-mdx-field={editing ? 'title' : undefined
 | `keymap`      | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                       |
 | `callouts`    | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site. |
 | `emoji`       | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.        |
+| `images`      | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                  |
+
+### Images
+
+Pasting or dropping an image saves it into `dir` (relative to the project; `{collection}` and `{id}` are
+filled in, default `src/assets/{collection}/{id}`) and inserts what `snippet` returns. `snippet` gets the
+path relative to the entry, alt text from the file name, the file name, and an import identifier the
+entry doesn't use yet. It returns the markup, or the markup plus import lines (lines the entry already
+has are skipped):
+
+```js
+// A Markdown image (the default)
+images: { dir: 'src/assets/essays/{id}' },
+
+// An imported image in a component
+images: {
+    dir: 'src/assets/projects/{id}',
+    snippet: ({ path, alt, ident }) => ({
+        imports: [`import Figure from '../../components/Figure.astro';`, `import ${ident} from '${path}';`],
+        markup: `<Figure src={${ident}} alt="${alt}" />`,
+    }),
+},
+```
 
 ## Develop
 

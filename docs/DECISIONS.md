@@ -164,3 +164,14 @@ when rendered for the editor. The frontmatter itself collapses to a one-line bar
 opens the side panel, and `</>` (or a search match inside it) shows the YAML.
 **Why.** Which element shows which field is the site's knowledge, and the attribute keeps it next to
 the markup. The rest of the header (chip, date) is composite and stays as rendered until a reload.
+
+## 21. Images are files in the site, inserted by the site's snippet (2026-10-27)
+
+**Decision.** A pasted or dropped image is written into the site's source tree (`images.dir`), never
+inlined as a data URL or put in `public/`, and the site's `images.snippet` decides the MDX: thoughts
+writes `![alt](…)`, which Astro optimizes as a relative Markdown image; the notebook imports the file and
+passes it to `<Figure src={…}>`. The snippet runs on the server (it's a function in the site's config);
+the alt text is marked with a placeholder character while it runs, so the editor can select it however
+the snippet wraps it.
+**Why.** Images then go through Astro's image pipeline like hand-added ones, the file stays readable
+MDX, and each site keeps its own convention for images without the editor knowing it.

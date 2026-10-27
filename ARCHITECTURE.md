@@ -26,6 +26,7 @@ src/integration.ts ── astro:config:setup ── injectRoute, Vite plugin (vi
 | `src/server/hash.ts`         | SHA-1 of the file text, shared by the API and the page.                                                                                                                                                                                                     |
 | `src/server/emoji.ts`        | `GET /emoji`: the shortcode table from the site's own satteri-emoji registry, merged in the site's catalog order.                                                                                                                                           |
 | `src/server/schema.ts`       | `GET /schema`: the collection's zod schema as JSON Schema (converted in `schema-entry.ts`, inside the SSR runner) plus the JSDoc above each field in the content config, by dotted path.                                                                    |
+| `src/server/images.ts`       | `POST /upload`: saves a pasted or dropped image into the configured folder (clean name, numbered on a clash, reused when identical), then calls the site's `snippet` with the relative path, alt text and an unused import name.                            |
 | `src/server/registry.ts`     | `GET /registry`: the components an entry can use (globals, its imports, other entries' imports, resolved with Vite's resolver), each with props parsed from `Props` by the TypeScript parser, docs, and its usual form and quote style in the collection.   |
 
 **Middleware has to be mounted in `astro:server:setup`.** A Vite plugin's `configureServer` added through
@@ -60,6 +61,7 @@ and can't find them), and Vite serves them as plain ES modules, one copy each.
 | `src/client/livepreview.ts` | A `StateField` of decorations built from the Lezer Markdown tree (see "Live preview" below).                                                                                                                                                 |
 | `src/client/commands.ts`    | Every command in one table: id, label, default key, `run`. The keymap, palette and cheat sheet are all built from it.                                                                                                                        |
 | `src/client/typography.ts`  | Smart quotes, dashes and ellipsis, each its own undo step and skipped in code, JSX and frontmatter.                                                                                                                                          |
+| `src/client/images.ts`      | Image paste and drop: uploads, then inserts the snippet as a block (blank lines around it, missing import lines added, alt text selected), at a position mapped through edits made meanwhile.                                                |
 | `src/client/paste.ts`       | A URL pasted over a selection makes a link. HTML is converted to Markdown with turndown. Cmd-Shift-V pastes plain text.                                                                                                                      |
 | `src/client/save.ts`        | Autosave, status, conflict banner, external-change reload.                                                                                                                                                                                   |
 | `src/client/palette.ts`     | The command palette and cheat sheet.                                                                                                                                                                                                         |
@@ -89,6 +91,9 @@ and can't find them), and Vite serves them as plain ES modules, one copy each.
   `--co-*` variables per type into a stylesheet. It measures again when the colour scheme changes.
 - **Emoji are characters.** A known `:shortcode:` is an atomic widget wherever satteri-emoji would
   convert it, cursor or not, so it never expands under the caret.
+- **Images show the image.** Off-cursor, `![alt](src)` is replaced by an `<img>` (a relative `src`
+  resolved against the entry's folder, served by Vite at `/@fs/…`). With the cursor on it, the source
+  shows and the image sits under it on the same line, so a click on an image reveals its source.
 - **The selection is a tint over the text** (`.cm-selectionLayer` above the content), because line
   backgrounds (cards, frames) would otherwise paint over it.
 

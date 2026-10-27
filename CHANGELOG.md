@@ -73,3 +73,16 @@
 - Frontmatter edits rewrite only the field's own text (`src/client/frontmatter.ts`), keeping
   comments, key order, quoting and long lines elsewhere.
 - The click test skips the collapsed frontmatter and waits for renders that are still arriving.
+- Image paste and drop: image files are saved into the site's images folder (`POST /__edit/api/upload`)
+  under a clean name (a screenshot gets `image-<date>-<time>`; the same image twice reuses the file) and
+  the site's `images.snippet` decides the MDX, with any import lines it needs. The image goes in as a
+  block of its own, with its alt text selected; a drop on a tag goes after the element. One undo removes it.
+- `images` option, top level or per collection: `{ dir, snippet }`, or `false`. Default: `![alt](path)` into
+  `src/assets/<collection>/<id>`.
+- Images show in the live preview: the image alone with the cursor elsewhere, its source with the image
+  under it when the cursor is on it. Relative paths load through Vite's `/@fs/`.
+
+### Fixed
+
+- A block inserted on an empty, unindented line (an image, a slash-menu block) put the cursor past the
+  inserted text.

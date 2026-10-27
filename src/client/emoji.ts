@@ -65,6 +65,7 @@ const NOT_TEXT = new Set([
     'FencedCode',
     'CodeInfo',
     'HTMLTag',
+    'MdxTag',
     'Comment',
     'CommentBlock',
     'URL',

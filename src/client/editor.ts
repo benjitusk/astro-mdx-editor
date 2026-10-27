@@ -13,6 +13,7 @@ import { bodyStart, frontmatterExtensions, loadSchema } from './fmpanel.ts';
 import { imageDrop } from './images.ts';
 import { jsxField } from './jsx.ts';
 import { fileBase, livePreviewExtensions } from './livepreview.ts';
+import { mdxBlocks } from './mdxblocks.ts';
 import { metaField } from './meta.ts';
 import { openCheatsheet, openPalette } from './palette.ts';
 import { loadRegistry } from './registry.ts';
@@ -29,7 +30,8 @@ export function stateExtensions(text: string): Extension[] {
         EditorState.lineSeparator.of(text.includes('\r\n') ? '\r\n' : '\n'),
         EditorState.allowMultipleSelections.of(true),
         // MDX has no indented code blocks (indentation inside components is just indentation).
-        markdown({ base: markdownLanguage, extensions: { remove: ['IndentedCode'] } }),
+        // Component tags parse as MDX reads them (src/client/mdxblocks.ts).
+        markdown({ base: markdownLanguage, extensions: [{ remove: ['IndentedCode'] }, mdxBlocks] }),
         metaField,
         jsxField,
         calloutLooks,

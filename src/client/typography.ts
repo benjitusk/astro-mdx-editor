@@ -13,6 +13,7 @@ const CODE_LIKE = new Set([
     'CodeBlock',
     'HTMLBlock',
     'HTMLTag',
+    'MdxTag',
     'Comment',
     'CommentBlock',
     'URL',

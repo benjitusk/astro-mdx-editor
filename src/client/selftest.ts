@@ -110,7 +110,9 @@ export async function runSelfTest(view: EditorView, onProgress?: (done: number, 
             // Only where a marker sits there; landing in visible indentation is right.
             const content = view.contentDOM.getBoundingClientRect();
             const markerBefore = s.pos === line.from || s.marked;
-            if (s.kind === 'text start' && markerBefore && rect.left - 2 > content.left) {
+            // A line that continues a soft-wrapped paragraph starts mid-row: there's no "left of it".
+            const joined = view.state.field(livePreview).joined.has(s.line);
+            if (s.kind === 'text start' && markerBefore && !joined && rect.left - 2 > content.left) {
                 tests.push([`left of text, ${state}`, rect.left - 2, s.pos]);
             }
             for (const [name, x, expected] of tests) {

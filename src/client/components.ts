@@ -22,7 +22,7 @@ import { allElements, elementAt, jsxField, type JsxElement } from './jsx.ts';
 import { metaField } from './meta.ts';
 import { openProps, propsField } from './props.ts';
 import { registryField } from './registry.ts';
-import { prefix, prefixSource, type Prefix } from './livepreview.ts';
+import { listIndentAt, prefix, prefixSource, type Prefix } from './livepreview.ts';
 import { rawOpen, toggleRaw } from './raw.ts';
 import { caretPoint, renderedText, sourceOffsetFor } from './textmap.ts';
 
@@ -169,6 +169,8 @@ interface WidgetContext {
     stale: boolean;
     error: string | null;
     depth: number;
+    /** The list item indentation the block sits at, if it's in a list. */
+    indent: string | null;
 }
 
 function preventLinks(dom: HTMLElement) {
@@ -231,16 +233,24 @@ class RenderedWidget extends WidgetType {
         const a = this.ctx;
         const b = other.ctx;
         return (
-            a.key === b.key && a.html === b.html && a.error === b.error && a.stale === b.stale && a.depth === b.depth
+            a.key === b.key &&
+            a.html === b.html &&
+            a.error === b.error &&
+            a.stale === b.stale &&
+            a.depth === b.depth &&
+            a.indent === b.indent
         );
     }
     toDOM(view: EditorView) {
-        const { el, html, stale, error, depth } = this.ctx;
+        const { el, html, stale, error, depth, indent } = this.ctx;
         const inline = el.kind === 'inline';
         const dom = h(inline ? 'span' : 'div', {
-            'class': `mdx-render mdx-render-${el.kind}${depth && !inline ? ' mdx-in-frame' : ''}${stale ? ' mdx-stale' : ''}${error ? ' mdx-error' : ''}`,
+            'class': `mdx-render mdx-render-${el.kind}${depth && !inline ? ' mdx-in-frame' : ''}${indent && !inline ? ' mdx-in-list' : ''}${stale ? ' mdx-stale' : ''}${error ? ' mdx-error' : ''}`,
             'data-component': el.name,
-            'style': depth ? `--frame-depth: ${depth}` : undefined,
+            'style':
+                [depth ? `--frame-depth: ${depth}` : '', indent ? `--md-indent: ${indent}` : '']
+                    .filter(Boolean)
+                    .join('; ') || undefined,
         });
         const body = h(inline ? 'span' : 'div', { class: 'mdx-html' });
         if (html !== null) body.innerHTML = inline ? html.replace(/^<p>([\s\S]*)<\/p>\s*$/, '$1') : html;
@@ -384,6 +394,7 @@ function build(state: EditorState): Components {
             stale: !result?.html && html !== null,
             error: result?.error ?? null,
             depth,
+            indent: el.kind === 'inline' ? null : listIndentAt(state, el.from),
         };
         if (el.kind === 'inline') {
             if (html === null) return; // stays raw until its render arrives

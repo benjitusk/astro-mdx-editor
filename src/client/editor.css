@@ -205,6 +205,40 @@
     letter-spacing: 0.5em;
 }
 
+/* A fenced code block in a list item sits at the item's indent. */
+.mdx-editor .md-fence.md-li {
+    margin-left: var(--md-indent);
+}
+
+/* Task lists: the checkbox, as on the page. */
+.mdx-editor .md-task {
+    margin: 0 0.4em 0 0;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/* Tables: drawn as the site draws them; their source in monospace, so the columns line up. */
+.mdx-editor .md-table {
+    /* Contain the table's own margins, so CodeMirror measures the whole block. */
+    display: flow-root;
+    overflow-x: auto;
+    white-space: normal;
+    cursor: text;
+}
+.mdx-editor .md-table-src {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.875em;
+}
+
+/* CodeMirror's zero-width cursor anchors are <img>s: keep the site's image styles off them. */
+.mdx-editor .cm-content img.cm-widgetBuffer {
+    all: unset;
+    display: inline;
+    width: 0;
+    height: 1em;
+    vertical-align: text-top;
+}
+
 /* Images: the image itself, on a row of its own; with the cursor on it, under its source. */
 .mdx-editor .md-img {
     display: block;
@@ -406,6 +440,9 @@
 .mdx-editor .mdx-render:hover {
     outline-color: var(--border-strong, #ccc);
 }
+.mdx-editor .mdx-render.mdx-in-list {
+    margin-left: var(--md-indent);
+}
 .mdx-editor .mdx-render-inline {
     display: inline;
     outline-offset: 1px;
@@ -592,6 +629,11 @@
     font-family: var(--co-font);
     font-size: var(--co-size);
     line-height: var(--co-leading);
+}
+/* A code block inside a callout keeps code's font; the card is the callout's. */
+.mdx-editor .cm-line.md-callout.md-fence {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: var(--text-sm, 0.9375rem);
 }
 .mdx-editor .cm-line.md-callout.md-li {
     padding-left: calc(var(--frame-pad, 0px) + var(--co-inset) + var(--md-indent));

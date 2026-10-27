@@ -13,7 +13,9 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemir
 import type { SyntaxNode } from '@lezer/common';
 import { calloutLooks, calloutMarkDecoration, calloutOf } from './callouts.ts';
 import { emojiDecorations, emojiTable } from './emoji.ts';
-import { metaField, type Meta } from './meta.ts';
+import { jsxField } from './jsx.ts';
+import { tableDecorations } from './tables.ts';
+import { inMeta, metaField, type Meta } from './meta.ts';
 
 /**
  * Obsidian-style live preview, as decorations over the raw text (the text itself is never changed).
@@ -26,6 +28,9 @@ import { metaField, type Meta } from './meta.ts';
  * - Line classes reproduce Prose's block spacing, which can't reach through CodeMirror's DOM.
  * - Callout markers and emoji shortcodes are atomic widgets that never expand under the cursor
  *   (src/client/callouts.ts, src/client/emoji.ts).
+ * - A paragraph hard-wrapped in the source flows as one paragraph, as on the page: each soft line
+ *   break (and the indentation after it) shows as a space, and steps and deletes as one.
+ * - Tables are drawn as tables, with their source shown while the selection is in them (tables.ts).
  * - Images show the image. With the selection on one, its source shows too, with the image under it.
  */
 
@@ -41,6 +46,8 @@ export interface Preview {
     prefixes: RangeSet<Prefix>;
     /** Widgets the cursor steps over whole (callout icons, emoji). */
     atomic: DecorationSet;
+    /** Line numbers drawn as the continuation of the line above (a soft-wrapped paragraph). */
+    joined: ReadonlySet<number>;
 }
 
 const hidden = Decoration.replace({});
@@ -62,6 +69,77 @@ class RuleWidget extends WidgetType {
     }
 }
 const rule = Decoration.replace({ widget: new RuleWidget() });
+
+/** A task list's `[ ]` / `[x]` as the checkbox the page shows; a click toggles it in the source. */
+class TaskWidget extends WidgetType {
+    readonly checked: boolean;
+    constructor(checked: boolean) {
+        super();
+        this.checked = checked;
+    }
+    eq(other: TaskWidget) {
+        return other.checked === this.checked;
+    }
+    toDOM(view: EditorView) {
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.className = 'md-task';
+        box.checked = this.checked;
+        box.tabIndex = -1;
+        box.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const pos = view.posAtDOM(box);
+            view.dispatch({
+                changes: { from: pos + 1, to: pos + 2, insert: this.checked ? ' ' : 'x' },
+                userEvent: 'input.toggle',
+            });
+        });
+        box.addEventListener('click', (e) => e.preventDefault());
+        return box;
+    }
+    ignoreEvent() {
+        return true;
+    }
+}
+
+/** A soft line break inside a paragraph, shown as the space it renders as. */
+class JoinWidget extends WidgetType {
+    eq() {
+        return true;
+    }
+    toDOM() {
+        const el = document.createElement('span');
+        el.className = 'md-join';
+        el.textContent = ' ';
+        return el;
+    }
+}
+const join = Decoration.replace({ widget: new JoinWidget() });
+
+/**
+ * Lines that continue a paragraph from the line above (a soft break, not `  ` or `\\`), outside
+ * quotes, code and components, which draw their own lines.
+ */
+function joinedLines(state: EditorState, tree: ReturnType<typeof syntaxTree>): Set<number> {
+    const doc = state.doc;
+    const out = new Set<number>();
+    const elements = state.field(jsxField, false) ?? [];
+    const inElement = (pos: number) => elements.some((e) => pos >= e.from && pos < e.to);
+    tree.iterate({
+        enter: (ref) => {
+            const name = ref.name;
+            if (name === 'Blockquote' || name === 'FencedCode' || name === 'HTMLBlock' || name === 'Table')
+                return false;
+            if (name !== 'Paragraph') return;
+            const first = doc.lineAt(ref.from).number;
+            const last = doc.lineAt(ref.to).number;
+            if (first === last || inElement(ref.from) || inMeta(state.field(metaField), ref.from)) return false;
+            for (let n = first + 1; n <= last; n++) if (!/( {2,}|\\)$/.test(doc.line(n - 1).text)) out.add(n);
+            return false;
+        },
+    });
+    return out;
+}
 
 /** The URL the entry's folder is served at in dev, so relative image paths can be shown. */
 export const fileBase = Facet.define<string, string>({ combine: (v) => v[0] ?? '' });
@@ -151,6 +229,14 @@ function build(state: EditorState): Preview {
     const lineStyles = new Map<number, string>();
     const lineAttrs = new Map<number, Record<string, string>>();
 
+    const joined = joinedLines(state, tree);
+    for (const n of joined) {
+        const l = doc.line(n);
+        const range = join.range(l.from - 1, l.from + /^\s*/.exec(l.text)![0].length);
+        out.push(range);
+        atomic.push(range);
+    }
+
     tree.iterate({
         enter: (ref) => {
             const node = ref.node;
@@ -215,7 +301,15 @@ function build(state: EditorState): Preview {
                 const notFirstItem = node.prevSibling?.name === 'ListItem';
                 for (let n = first; n <= last; n++) {
                     const l = doc.line(n);
-                    if (!l.text.trim()) continue;
+                    if (joined.has(n)) continue;
+                    if (!l.text.trim()) {
+                        // A blank line in a code block still belongs to the block's card.
+                        if (inFence(tree.resolveInner(l.from, 1))) {
+                            addLineClass(n, 'md-li');
+                            lineStyles.set(n, `--md-indent: ${depth * LIST_INDENT_REM}rem`);
+                        }
+                        continue;
+                    }
                     const indent = /^\s*/.exec(l.text)![0].length;
                     // A line inside a nested list belongs to the deepest item; let that item style it.
                     if (n > first && owningItem(tree.resolveInner(l.from + indent, 1))?.from !== node.from) continue;
@@ -249,6 +343,21 @@ function build(state: EditorState): Preview {
                 return false;
             }
 
+            if (name === 'TaskMarker') {
+                const checked = /x/i.test(doc.sliceString(node.from, node.to));
+                const d = Decoration.replace({ widget: new TaskWidget(checked) });
+                out.push(d.range(node.from, node.to));
+                atomic.push(d.range(node.from, node.to));
+                return false;
+            }
+
+            if (name === 'Table') {
+                const { widget, lines } = tableDecorations(state, node, touches(node.from, node.to));
+                if (widget) out.push(widget);
+                for (const n of lines ?? []) addLineClass(n, 'md-table-src');
+                return false;
+            }
+
             if (name === 'HorizontalRule') {
                 const l = doc.lineAt(node.from);
                 if (lineTouched(l.number)) out.push(markerShown.range(node.from, node.to));
@@ -267,6 +376,11 @@ function build(state: EditorState): Preview {
                     addLineClass(n, 'md-jsx');
                     jsxTokens(doc, l.from, l.to, out);
                 }
+                return false;
+            }
+            if (name === 'MdxTag') {
+                addLineClass(doc.lineAt(node.from).number, 'md-jsx');
+                jsxTokens(doc, node.from, node.to, out);
                 return false;
             }
             if (name === 'HTMLTag') {
@@ -362,6 +476,7 @@ function build(state: EditorState): Preview {
         decorations: Decoration.set(out, true),
         prefixes: RangeSet.of(prefixes, true),
         atomic: Decoration.set(atomic, true),
+        joined,
     };
 }
 
@@ -378,6 +493,19 @@ function childrenNamed(node: SyntaxNode, name: string, deep = false): SyntaxNode
         else if (deep && cursor.name !== 'Blockquote') out.push(...childrenNamed(cursor.node, name, true));
     } while (cursor.nextSibling());
     return out;
+}
+
+/** How far a block at `pos` is indented by the list items it sits in (a component in a list item). */
+export function listIndentAt(state: EditorState, pos: number): string | null {
+    const node = (ensureSyntaxTree(state, pos, 50) ?? syntaxTree(state)).resolveInner(pos, 1);
+    let depth = 0;
+    for (let n: SyntaxNode | null = node; n; n = n.parent) if (n.name === 'ListItem') depth++;
+    return depth ? `${depth * LIST_INDENT_REM}rem` : null;
+}
+
+function inFence(node: SyntaxNode | null): boolean {
+    for (let n = node; n; n = n.parent) if (n.name === 'FencedCode') return true;
+    return false;
 }
 
 function listDepth(item: SyntaxNode): number {

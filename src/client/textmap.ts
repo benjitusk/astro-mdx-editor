@@ -126,7 +126,28 @@ export function caretPoint(x: number, y: number): { node: Node; offset: number }
         caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
     };
     const pos = doc.caretPositionFromPoint?.(x, y);
-    if (pos) return { node: pos.offsetNode, offset: pos.offset };
-    const range = document.caretRangeFromPoint?.(x, y);
-    return range ? { node: range.startContainer, offset: range.startOffset } : null;
+    const point = pos
+        ? { node: pos.offsetNode, offset: pos.offset }
+        : (() => {
+              const range = document.caretRangeFromPoint?.(x, y);
+              return range ? { node: range.startContainer, offset: range.startOffset } : null;
+          })();
+    return point && onText(point, y) ? point : null;
+}
+
+/**
+ * Browsers snap a click in empty space (a card's padding) to the nearest text. Only a click within
+ * that text's line counts as a click on it.
+ */
+function onText(point: { node: Node; offset: number }, y: number): boolean {
+    if (point.node.nodeType !== Node.TEXT_NODE) return true;
+    const len = point.node.textContent?.length ?? 0;
+    if (!len) return true;
+    const range = document.createRange();
+    const at = Math.min(point.offset, len - 1);
+    range.setStart(point.node, at);
+    range.setEnd(point.node, at + 1);
+    const rect = range.getBoundingClientRect();
+    if (!rect.height) return true;
+    return y >= rect.top - 2 && y <= rect.bottom + 2;
 }

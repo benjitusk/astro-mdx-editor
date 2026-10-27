@@ -1,0 +1,93 @@
+---
+// /__edit: every entry the editor can open.
+import { entries, pageUrl } from 'virtual:mdx-editor/server';
+
+const list = await entries();
+const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collection);
+---
+
+<!doctype html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
+        <meta name='robots' content='noindex' />
+        <title>Editor</title>
+        <style>
+            body {
+                max-width: 40rem;
+                margin: 3rem auto;
+                padding: 0 1rem;
+                font:
+                    16px/1.6 system-ui,
+                    sans-serif;
+                color: #2a2622;
+                background: #f7f2e9;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            h2 {
+                margin-top: 2rem;
+                font-size: 1rem;
+                text-transform: capitalize;
+                color: #625a50;
+            }
+            ul {
+                padding: 0;
+                list-style: none;
+            }
+            li {
+                display: flex;
+                gap: 1rem;
+                padding: 0.4rem 0;
+                border-bottom: 1px solid #e4dbcc;
+            }
+            a {
+                color: #b34a31;
+            }
+            .page {
+                margin-left: auto;
+                color: #8a8175;
+                font-size: 0.875rem;
+            }
+            @media (prefers-color-scheme: dark) {
+                body {
+                    color: #ece6dc;
+                    background: #1d1a17;
+                }
+                li {
+                    border-color: #3a342d;
+                }
+                a {
+                    color: #e08a6f;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Editor</h1>
+        {
+            [...byCollection].map(([collection, items]) => (
+                <section>
+                    <h2>{collection}</h2>
+                    <ul>
+                        {items.map((e: { collection: string; id: string }) => {
+                            const url = pageUrl(e.collection, e.id);
+                            return (
+                                <li>
+                                    <a href={`/__edit/${e.collection}/${e.id}`}>{e.id}</a>
+                                    {url && (
+                                        <a class='page' href={url}>
+                                            page
+                                        </a>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+            ))
+        }
+    </body>
+</html>

@@ -23,6 +23,13 @@ npm run roundtrip -- ../thoughts ../engineering-notebook
 Then run `astro dev` in a linked site and open `/__edit/<collection>/<id>?selftest` to run the
 click-accuracy test.
 
+**Server code changes need a full restart** (`astro dev stop`, then start it again). Node caches the
+integration module for the life of the process, and touching `astro.config.mjs` doesn't reload it.
+Client code (`src/client/`) hot-reloads normally.
+
+**Debugging reload routing:** start the dev server with `MDX_EDITOR_DEBUG=/path/to/log` to log HMR hellos
+and each full reload's classification.
+
 ## Git
 
 Commit in small, logical steps with clear messages. Update CHANGELOG.md under "Unreleased" as features

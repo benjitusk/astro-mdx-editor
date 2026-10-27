@@ -47,3 +47,13 @@ in callouts. With nothing moving, a click resolves against the layout the user a
 mode with Playwright.
 **Why.** It tests the real site CSS and fonts with no extra browser download. It can be driven from any
 browser, including the built-in one used for checks.
+
+## 8. Full reloads are routed per tab (2026-10-27)
+
+**Decision.** Wrap Vite's HMR channel so that editor tabs get a custom reload event (with kind `content` or
+`code`) instead of a raw full reload. All other tabs are unaffected.
+**Why.** Astro reloads every open page whenever any content file changes, so each autosave would
+reload the editor and lose the cursor. Making the editor page independent of `astro:content` doesn't
+help: the reload is sent to every page (`path: '*'`), and a second one comes from the SSR module graph.
+Wrapping the channel relies on Vite internals (`server.ws.clients`, `send`), so it's kept in one small
+file.

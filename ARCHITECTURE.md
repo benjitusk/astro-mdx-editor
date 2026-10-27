@@ -20,6 +20,7 @@ src/integration.ts ── astro:config:setup ── injectRoute, Vite plugin (vi
 | `src/server/vite-plugin.ts` | Virtual modules: `shell` (the site's Shell), `globals` (the site's globally available components), `server` (the token and entry reader for pages). It also pins `astro` and `@astrojs/mdx` to the site's copies (`resolve.dedupe`). |
 | `src/server/entries.ts`     | Maps `collection/id` to a file under the collection's `dir`, refusing anything outside it. Lists entries.                                                                                                                            |
 | `src/server/api.ts`         | `/__edit/api/*` middleware. Every request needs the per-session token header and a same-origin `Origin`. `PUT /file` is refused with 409 when the file on disk no longer matches the base hash the client saw.                       |
+| `src/server/reload.ts`      | Routes full-page reloads per tab: editors get a custom event saying `content` or `code` (see Saving).                                                                                                                                |
 | `src/server/hash.ts`        | SHA-1 of the file text, shared by the API and the page.                                                                                                                                                                              |
 
 **Middleware has to be mounted in `astro:server:setup`.** A Vite plugin's `configureServer` added through
@@ -64,6 +65,15 @@ with `experimental_AstroContainer`, with `@astrojs/mdx/server.js` registered as 
 
 - The client keeps `baseHash`, the hash of the text it last loaded or saved. `PUT` sends it along.
 - On a 409 the client shows a banner: keep mine (overwrite) or load theirs.
+- Every save makes Astro send full-page reloads to every tab: one from the content store (`path: '*'`)
+  and one from its HMR plugin, because the `.mdx` is also an SSR module. `src/server/reload.ts` wraps
+  the HMR channel:
+    - Editor tabs announce themselves (`mdx-editor:hello`) and get `mdx-editor:full-reload` with a
+      `kind` instead. Every other tab still reloads as before.
+    - The `kind` is `content` when every file in the latest change burst is an entry or under `.astro/`,
+      and `code` otherwise.
+    - The client ignores `content`. On `code` it reloads once there are no unsaved edits, then restores
+      the cursor and scroll position (`src/client/reload.ts`).
 - The server's file watcher sends `mdx-editor:file-changed` over Vite HMR. The client reloads silently
   if it has no unsaved edits. The reload replaces only the changed span, so the cursor survives.
 

@@ -1,0 +1,70 @@
+/* The editor sits inside the site's Prose, so it inherits the body type. */
+.mdx-editor .cm-editor {
+    background: transparent;
+}
+.mdx-editor .cm-editor.cm-focused {
+    outline: none;
+}
+.mdx-editor .cm-scroller {
+    overflow: visible;
+    font-family: inherit;
+    line-height: inherit;
+}
+.mdx-editor .cm-content {
+    padding: 0;
+    caret-color: var(--accent, currentColor);
+}
+.mdx-editor .cm-line {
+    padding: 0;
+}
+.mdx-editor .cm-cursor {
+    border-left: 2px solid var(--accent, currentColor);
+}
+.mdx-editor .cm-selectionBackground,
+.mdx-editor .cm-focused .cm-selectionBackground {
+    background: var(--accent-subtle, rgb(0 0 0 / 0.1)) !important;
+}
+
+/* ---- Editor chrome (not part of the page) ---- */
+.mdx-editor-status {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    z-index: 50;
+    padding: 4px 10px;
+    border: 1px solid var(--border, #ddd);
+    border-radius: 999px;
+    background: var(--surface, #fff);
+    color: var(--text-muted, #666);
+    font: 12px/1.5 var(--font-sans, system-ui, sans-serif);
+}
+.mdx-editor-status[data-status='unsaved'],
+.mdx-editor-status[data-status='saving'] {
+    color: var(--text-subtle, #888);
+}
+.mdx-editor-status[data-status='error'],
+.mdx-editor-status[data-status='conflict'] {
+    border-color: var(--accent, #b34a31);
+    color: var(--accent, #b34a31);
+}
+.mdx-editor-banner {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    z-index: 60;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    border: 1px solid var(--accent, #b34a31);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 14px/1.4 var(--font-sans, system-ui, sans-serif);
+    box-shadow: var(--shadow-lift, 0 6px 20px rgb(0 0 0 / 0.15));
+}
+.mdx-editor-banner button {
+    font: inherit;
+    cursor: pointer;
+}

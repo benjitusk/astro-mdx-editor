@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { mountApi } from './server/api.ts';
 import { entryForPath, resolveCollections } from './server/entries.ts';
 import { routeFullReloads } from './server/reload.ts';
+import { createRenderer } from './server/render.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
 import type { MdxEditorOptions, ResolvedCollection } from './types.ts';
 
@@ -86,9 +87,10 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
             },
             'astro:server:setup': ({ server }) => {
                 if (!active) return;
-                mountApi(server, { token, collections });
+                const root = fileURLToPath(config.root);
+                mountApi(server, { token, collections, renderer: createRenderer(server, root) });
                 // Astro rewrites .astro/data-store.json after every content change; that is not code.
-                const generated = join(fileURLToPath(config.root), '.astro') + sep;
+                const generated = join(root, '.astro') + sep;
                 routeFullReloads(
                     server,
                     (path) => entryForPath(collections, path) !== null || path.startsWith(generated)

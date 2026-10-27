@@ -1,8 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { sep } from 'node:path';
 import type { ViteDevServer } from 'vite';
 import type { ResolvedCollection } from '../types.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
+import type { createRenderer } from './render.ts';
 
 export const API_BASE = '/__edit/api';
 export const TOKEN_HEADER = 'x-mdx-editor-token';
@@ -14,6 +16,7 @@ const MAX_BODY = 10 * 1024 * 1024;
 interface Context {
     token: string;
     collections: ResolvedCollection[];
+    renderer: ReturnType<typeof createRenderer>;
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -69,6 +72,12 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
                     entries.map(({ collection, id }) => ({ collection, id }))
                 );
             }
+            if (url.pathname === '/render' && req.method === 'POST') {
+                const body = JSON.parse(await readBody(req)) as { collection: string; id: string; source: string };
+                const file = await findEntry(ctx.collections, body.collection, body.id);
+                if (!file || typeof body.source !== 'string') return send(res, 404, { error: 'no such entry' });
+                return send(res, 200, await ctx.renderer.render(file, body.source));
+            }
             if (url.pathname === '/file') {
                 const file = await findEntry(
                     ctx.collections,
@@ -94,7 +103,11 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
     // Tell open editors when one of their files changes on disk (another editor, git, an agent).
     const notify = async (path: string) => {
         const entry = entryForPath(ctx.collections, path);
-        if (!entry) return;
+        if (!entry) {
+            if (!path.includes(`${sep}node_modules${sep}`) && !path.includes(`${sep}.astro${sep}`))
+                ctx.renderer.invalidate();
+            return;
+        }
         try {
             const { hash } = await readEntry(entry);
             server.ws.send({

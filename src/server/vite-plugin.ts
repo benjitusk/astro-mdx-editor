@@ -57,9 +57,17 @@ export const callouts = ${JSON.stringify(ctx.options.callouts ?? DEFAULT_CALLOUT
 export const emoji = ${JSON.stringify(ctx.options.emoji !== false)};
 export async function loadEntry(collection, id) {
     const file = await findEntry(collections, collection, id);
-    return file ? { ...file, ...(await readEntry(file)) } : null;
+    if (!file) return null;
+    // Vite serves any allowed file at /@fs/<absolute path>; relative image paths resolve against this.
+    const posix = file.path.replace(/\\\\/g, '/');
+    const fileBase = '/@fs' + (posix.startsWith('/') ? '' : '/') + posix.slice(0, posix.lastIndexOf('/') + 1);
+    return { ...file, ...(await readEntry(file)), fileBase };
 }
 export const entries = () => listEntries(collections);
+export function imagesOn(collection) {
+    const own = options?.collections?.[collection]?.images;
+    return (own ?? options?.images) !== false;
+}
 export function pageUrl(collection, id) {
     return options?.collections?.[collection]?.pageUrl?.(id) ?? null;
 }

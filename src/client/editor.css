@@ -53,6 +53,22 @@
     border-color: var(--accent, #b34a31);
     color: var(--accent, #b34a31);
 }
+/* An upload that failed. */
+.mdx-editor-toast {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    z-index: 60;
+    max-width: min(90vw, 36rem);
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    border: 1px solid var(--accent, #b34a31);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 14px/1.4 var(--font-sans, system-ui, sans-serif);
+}
+
 .mdx-editor-banner {
     position: fixed;
     top: 12px;
@@ -187,6 +203,17 @@
     font-family: var(--font-display, inherit);
     font-size: var(--text-xl, 1.5rem);
     letter-spacing: 0.5em;
+}
+
+/* Images: the image itself, on a row of its own; with the cursor on it, under its source. */
+.mdx-editor .md-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    cursor: text;
+}
+.mdx-editor .md-img-below {
+    margin-top: var(--space-2, 0.5rem);
 }
 
 /* Links: real <a> without href, so clicking edits instead of navigating. */

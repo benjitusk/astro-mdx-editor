@@ -1,10 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { sep } from 'node:path';
 import type { ViteDevServer } from 'vite';
-import type { ResolvedCollection } from '../types.ts';
+import type { ImageOptions, ResolvedCollection } from '../types.ts';
 import type { EmojiTable } from './emoji.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
+import { saveImage } from './images.ts';
 import type { createRegistry } from './registry.ts';
 import type { createSchemas } from './schema.ts';
 import type { createRenderer } from './render.ts';
@@ -15,10 +16,15 @@ export const BASE_HEADER = 'x-mdx-editor-base';
 export const FILE_CHANGED_EVENT = 'mdx-editor:file-changed';
 
 const MAX_BODY = 10 * 1024 * 1024;
+// Uploads arrive as base64 in JSON: a 30 MB image.
+const MAX_UPLOAD = 40 * 1024 * 1024;
 
 interface Context {
     token: string;
+    root: string;
     collections: ResolvedCollection[];
+    /** A collection's image settings, or null when paste and drop are off for it. */
+    images: (collection: string) => ImageOptions | null;
     renderer: ReturnType<typeof createRenderer>;
     registry: ReturnType<typeof createRegistry>;
     schemas: ReturnType<typeof createSchemas>;
@@ -33,13 +39,13 @@ function send(res: ServerResponse, status: number, body: unknown) {
     res.end(JSON.stringify(body));
 }
 
-function readBody(req: IncomingMessage): Promise<string> {
+function readBody(req: IncomingMessage, limit = MAX_BODY): Promise<string> {
     return new Promise((ok, fail) => {
         const chunks: Buffer[] = [];
         let size = 0;
         req.on('data', (c: Buffer) => {
             size += c.length;
-            if (size > MAX_BODY) {
+            if (size > limit) {
                 fail(new Error('body too large'));
                 req.destroy();
             } else chunks.push(c);
@@ -110,6 +116,27 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
                 if (!file || typeof body.source !== 'string') return send(res, 404, { error: 'no such entry' });
                 const esm = typeof body.esm === 'string' ? body.esm : undefined;
                 return send(res, 200, await ctx.renderer.render(file, body.source, esm));
+            }
+            if (url.pathname === '/upload' && req.method === 'POST') {
+                const body = JSON.parse(await readBody(req, MAX_UPLOAD)) as {
+                    collection: string;
+                    id: string;
+                    name: string;
+                    type: string;
+                    data: string;
+                    esm?: string;
+                };
+                const file = await findEntry(ctx.collections, body.collection, body.id);
+                const options = ctx.images(body.collection);
+                if (!file || !options || typeof body.data !== 'string')
+                    return send(res, 404, { error: 'no such entry, or images are off' });
+                const upload = {
+                    name: String(body.name ?? ''),
+                    type: String(body.type ?? ''),
+                    data: Buffer.from(body.data, 'base64'),
+                    esm: typeof body.esm === 'string' ? body.esm : '',
+                };
+                return send(res, 200, await saveImage(ctx.root, options, file, upload));
             }
             if (url.pathname === '/file') {
                 const file = await findEntry(

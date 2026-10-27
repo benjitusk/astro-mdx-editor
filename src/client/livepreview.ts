@@ -26,6 +26,7 @@ import { metaField, type Meta } from './meta.ts';
  * - Line classes reproduce Prose's block spacing, which can't reach through CodeMirror's DOM.
  * - Callout markers and emoji shortcodes are atomic widgets that never expand under the cursor
  *   (src/client/callouts.ts, src/client/emoji.ts).
+ * - Images show the image. With the selection on one, its source shows too, with the image under it.
  */
 
 /** Ranges hidden at the start of a line; a click landing on one is moved past it (see leanToContent). */
@@ -61,6 +62,43 @@ class RuleWidget extends WidgetType {
     }
 }
 const rule = Decoration.replace({ widget: new RuleWidget() });
+
+/** The URL the entry's folder is served at in dev, so relative image paths can be shown. */
+export const fileBase = Facet.define<string, string>({ combine: (v) => v[0] ?? '' });
+
+/** A relative image path as a URL the editor page can load; URLs and site paths stay as they are. */
+export function imageUrl(src: string, base: string): string {
+    if (!base || /^([a-z][a-z\d+.-]*:|\/)/i.test(src)) return src;
+    const url = new URL(src, `http://x${base}`);
+    return url.pathname + url.search;
+}
+
+class ImageWidget extends WidgetType {
+    readonly src: string;
+    readonly alt: string;
+    readonly below: boolean;
+    constructor(src: string, alt: string, below: boolean) {
+        super();
+        this.src = src;
+        this.alt = alt;
+        this.below = below;
+    }
+    eq(other: ImageWidget) {
+        return other.src === this.src && other.alt === this.alt && other.below === this.below;
+    }
+    toDOM(view: EditorView) {
+        const img = document.createElement('img');
+        img.className = this.below ? 'md-img md-img-below' : 'md-img';
+        img.alt = this.alt;
+        // Its height is known once it loads.
+        img.onload = img.onerror = () => view.requestMeasure();
+        img.src = this.src;
+        return img;
+    }
+    ignoreEvent() {
+        return false;
+    }
+}
 
 const INLINE: Record<string, { tagName: string; cls: string; marks: string[] }> = {
     Emphasis: { tagName: 'em', cls: 'md-em', marks: ['EmphasisMark'] },
@@ -249,6 +287,25 @@ function build(state: EditorState): Preview {
                     else hide(m.from, m.to);
                 }
                 return;
+            }
+
+            if (name === 'Image') {
+                const marks = childrenNamed(node, 'LinkMark');
+                const url = node.getChild('URL');
+                const close = marks.find((m) => doc.sliceString(m.from, m.to) === ']');
+                if (!url || !close) return false;
+                const alt = doc.sliceString(marks[0].to, close.from);
+                const widget = new ImageWidget(
+                    imageUrl(doc.sliceString(url.from, url.to), state.facet(fileBase)),
+                    alt,
+                    touches(node.from, node.to)
+                );
+                if (widget.below) {
+                    for (const m of marks) out.push(markerShown.range(m.from, m.to));
+                    out.push(Decoration.mark({ class: 'md-mark md-url' }).range(url.from, url.to));
+                    out.push(Decoration.widget({ widget, side: 1 }).range(node.to));
+                } else out.push(Decoration.replace({ widget }).range(node.from, node.to));
+                return false;
             }
 
             if (name === 'Link') {

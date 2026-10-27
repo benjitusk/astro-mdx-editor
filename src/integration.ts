@@ -11,7 +11,7 @@ import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
 import { createSchemas } from './server/schema.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
-import type { MdxEditorOptions, ResolvedCollection } from './types.ts';
+import type { ImageOptions, MdxEditorOptions, ResolvedCollection } from './types.ts';
 
 const pkgRoot = fileURLToPath(new URL('..', import.meta.url));
 const page = (name: string) => fileURLToPath(new URL(`./pages/${name}`, import.meta.url));
@@ -39,6 +39,13 @@ function safeReaddir(dir: string): string[] {
     } catch {
         return [];
     }
+}
+
+/** A collection's image settings: its own, else the top-level ones, else the defaults. Null when off. */
+export function imageOptions(options: MdxEditorOptions, collection: string): ImageOptions | null {
+    const own = options.collections[collection]?.images;
+    const value = own ?? options.images;
+    return value === false ? null : (value ?? {});
 }
 
 export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
@@ -94,7 +101,9 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                 let emoji: Promise<EmojiTable | null> | undefined;
                 mountApi(server, {
                     token,
+                    root,
                     collections,
+                    images: (name) => imageOptions(options, name),
                     renderer: createRenderer(server, root),
                     schemas: createSchemas(server, root),
                     registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),

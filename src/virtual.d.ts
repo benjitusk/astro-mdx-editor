@@ -18,7 +18,8 @@ declare module 'virtual:mdx-editor/server' {
     export function loadEntry(
         collection: string,
         id: string
-    ): Promise<{ collection: string; id: string; path: string; text: string; hash: string } | null>;
+    ): Promise<{ collection: string; id: string; path: string; text: string; hash: string; fileBase: string } | null>;
     export function entries(): Promise<{ collection: string; id: string; path: string }[]>;
     export function pageUrl(collection: string, id: string): string | null;
+    export function imagesOn(collection: string): boolean;
 }

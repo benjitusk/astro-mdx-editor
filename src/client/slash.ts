@@ -1,5 +1,5 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
-import type { ChangeSpec, EditorState } from '@codemirror/state';
+import type { ChangeSpec, EditorState, StateEffect } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { ComponentInfo } from '../types.ts';
 import { pickCallout } from './callouts.ts';
@@ -45,7 +45,7 @@ export function componentSnippet(comp: ComponentInfo, quote: '"' | "'", indent: 
 }
 
 /** Where a new import line goes: after the file's last import/export, or after the frontmatter. */
-function importChange(state: EditorState, line: string): ChangeSpec {
+export function importChange(state: EditorState, line: string): ChangeSpec {
     const meta = state.field(metaField);
     const last = meta.esm.at(-1);
     if (last) return { from: last.to, insert: `\n${line}` };
@@ -55,33 +55,38 @@ function importChange(state: EditorState, line: string): ChangeSpec {
 
 const blank = (state: EditorState, n: number) => n < 1 || n > state.doc.lines || !state.doc.line(n).text.trim();
 
+export interface BlockInsert {
+    /** Where the cursor goes, as an offset in the text; with `head`, the selection's other end. */
+    cursor: number;
+    head?: number;
+    /** More changes in the same transaction (import lines). */
+    extra?: ChangeSpec[];
+    effects?: StateEffect<unknown>[];
+    userEvent?: string;
+}
+
 /**
  * Replace [from, to) (the rest of a line after its indentation) with a block of text, keeping a blank
- * line between it and any text above or below. `cursor` is an offset in `text`.
+ * line between it and any text above or below.
  */
-function insertBlock(
-    view: EditorView,
-    from: number,
-    to: number,
-    text: string,
-    cursor: number,
-    extra: ChangeSpec[] = [],
-    effects: ReturnType<typeof markImported.of>[] = []
-) {
+export function insertBlock(view: EditorView, from: number, to: number, text: string, opts: BlockInsert) {
+    const { cursor, head = cursor, extra = [], effects = [], userEvent = 'input.complete' } = opts;
     const { state } = view;
     const line = state.doc.lineAt(from);
     const changes: ChangeSpec[] = [...extra];
-    if (!blank(state, line.number - 1)) changes.push({ from: line.from, insert: '\n' });
+    const gap = !blank(state, line.number - 1);
+    if (gap) changes.push({ from: line.from, insert: '\n' });
     const after = blank(state, line.number + 1) ? '' : '\n';
     changes.push({ from, to, insert: text + after });
     const set = state.changes(changes);
-    const start = set.mapPos(from, 1);
+    // Before our text; past the blank line added in front of it when that went in at the same spot.
+    const start = set.mapPos(from, -1) + (gap && from === line.from ? 1 : 0);
     view.dispatch({
         changes: set,
-        selection: { anchor: start + cursor },
+        selection: { anchor: start + cursor, head: start + head },
         effects,
         scrollIntoView: true,
-        userEvent: 'input.complete',
+        userEvent,
     });
     return start;
 }
@@ -91,15 +96,11 @@ export function insertComponent(view: EditorView, comp: ComponentInfo, from: num
     const line = state.doc.lineAt(from);
     const indent = /^[ \t]*/.exec(line.text)![0].slice(0, from - line.from);
     const { text, cursor } = componentSnippet(comp, quoteStyle(state), indent);
-    const start = insertBlock(
-        view,
-        from,
-        to,
-        text,
+    const start = insertBlock(view, from, to, text, {
         cursor,
-        comp.import ? [importChange(state, comp.import)] : [],
-        comp.import ? [markImported.of(comp.name)] : []
-    );
+        extra: comp.import ? [importChange(state, comp.import)] : [],
+        effects: comp.import ? [markImported.of(comp.name)] : [],
+    });
     // Required props are asked for straight away.
     if (comp.props?.some((p) => p.required)) view.dispatch({ effects: openProps.of({ from: start }) });
 }
@@ -138,10 +139,14 @@ const BLOCK_ITEMS: BlockItem[] = [
         run: (view, from, to) => {
             const indent = from - view.state.doc.lineAt(from).from;
             const pad = ' '.repeat(indent);
-            insertBlock(view, from, to, `\`\`\`\n${pad}\n${pad}\`\`\``, 3);
+            insertBlock(view, from, to, `\`\`\`\n${pad}\n${pad}\`\`\``, { cursor: 3 });
         },
     },
-    { label: 'Divider', detail: '---', run: (view, from, to) => void insertBlock(view, from, to, '---', 3) },
+    {
+        label: 'Divider',
+        detail: '---',
+        run: (view, from, to) => void insertBlock(view, from, to, '---', { cursor: 3 }),
+    },
 ];
 
 /** The doc's first sentence, without the "Name —" it usually starts with. */

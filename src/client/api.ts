@@ -1,4 +1,4 @@
-import type { ClientConfig, CollectionSchema, Registry } from '../types.ts';
+import type { ClientConfig, CollectionSchema, Registry, UploadResult } from '../types.ts';
 
 // Shared with src/server/api.ts; duplicated so the client bundle doesn't pull in Node modules.
 export const API_BASE = '/__edit/api';
@@ -40,6 +40,23 @@ export function createApi(cfg: ClientConfig) {
             if (!r.ok) throw new Error(`registry failed: ${r.status}`);
             return r.json();
         },
+        /** Save an image into the entry's images folder; `esm` is the entry's import lines, for naming. */
+        async upload(file: Blob & { name?: string }, esm: string): Promise<UploadResult> {
+            const r = await fetch(`${API_BASE}/upload`, {
+                method: 'POST',
+                headers: { ...headers, 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    collection: cfg.collection,
+                    id: cfg.id,
+                    name: file.name ?? '',
+                    type: file.type,
+                    data: await base64(file),
+                    esm,
+                }),
+            });
+            if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? `upload failed: ${r.status}`);
+            return r.json();
+        },
         /** Resolves to the new hash, or to the file's current contents when it changed underneath us. */
         async save(
             text: string,
@@ -58,3 +75,15 @@ export function createApi(cfg: ClientConfig) {
 }
 
 export type Api = ReturnType<typeof createApi>;
+
+function base64(blob: Blob): Promise<string> {
+    return new Promise((ok, fail) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const url = reader.result as string;
+            ok(url.slice(url.indexOf(',') + 1));
+        };
+        reader.onerror = () => fail(reader.error);
+        reader.readAsDataURL(blob);
+    });
+}

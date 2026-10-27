@@ -2,7 +2,7 @@
 // /__edit/<collection>/<id>: the editor, inside the site's own Shell (layout + Prose).
 import Shell from 'virtual:mdx-editor/shell';
 import * as globals from 'virtual:mdx-editor/globals';
-import { callouts, emoji, keymap, loadEntry, pageUrl, token, typography } from 'virtual:mdx-editor/server';
+import { callouts, emoji, imagesOn, keymap, loadEntry, pageUrl, token, typography } from 'virtual:mdx-editor/server';
 
 const { collection = '', id = '' } = Astro.params;
 const entry = await loadEntry(collection, id);
@@ -21,6 +21,8 @@ const config = {
     keymap,
     callouts,
     emoji,
+    images: imagesOn(collection),
+    fileBase: entry.fileBase,
 };
 // JSON inside <script> must not be able to close the tag.
 const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');

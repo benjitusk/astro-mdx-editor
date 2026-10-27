@@ -10,8 +10,9 @@ import { commandKeymap, commandTable } from './commands.ts';
 import { componentExtensions } from './components.ts';
 import { emojiCompletions, emojiTable, loadEmoji } from './emoji.ts';
 import { bodyStart, frontmatterExtensions, loadSchema } from './fmpanel.ts';
+import { imageDrop } from './images.ts';
 import { jsxField } from './jsx.ts';
-import { livePreviewExtensions } from './livepreview.ts';
+import { fileBase, livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
 import { openCheatsheet, openPalette } from './palette.ts';
 import { loadRegistry } from './registry.ts';
@@ -55,12 +56,15 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
                 componentExtensions(api),
                 frontmatterExtensions(),
                 calloutTypes.of(cfg.callouts),
+                fileBase.of(cfg.fileBase),
                 calloutClicks,
                 // One completion config: `/` menu at a line start, emoji after `:`.
                 autocompletion({ override: [slashCompletions, emojiCompletions], icons: false }),
                 commandKeymap(commands, cfg.keymap),
                 wrapOnType,
                 typography(cfg.typography),
+                // Before smartPaste: an image on the clipboard can come with HTML too.
+                cfg.images ? imageDrop(api) : [],
                 smartPaste(),
                 drawSelection(),
                 EditorView.lineWrapping,

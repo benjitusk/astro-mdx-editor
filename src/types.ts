@@ -3,6 +3,32 @@ export interface CollectionOptions {
     dir?: string;
     /** The published URL of an entry, for "open page" links and the live-page pane. */
     pageUrl?: (id: string) => string;
+    /** Overrides the top-level `images` for this collection; `false` turns paste and drop off here. */
+    images?: ImageOptions | false;
+}
+
+/** An image the editor saved, as passed to `images.snippet`. */
+export interface ImageInfo {
+    /** The file's path relative to the entry, e.g. `../../assets/essays/judging/sketch.png`. */
+    path: string;
+    /** Alt text: from the file name, or empty for a pasted screenshot. */
+    alt: string;
+    /** The file name, e.g. `sketch.png`. */
+    name: string;
+    /** A JavaScript identifier for importing it, unused in the entry's imports (`sketch`, `howManyTimes2`). */
+    ident: string;
+    collection: string;
+    id: string;
+}
+
+export interface ImageOptions {
+    /** Folder the images are saved in, relative to the project root. `{collection}` and `{id}` are filled in. Default: `src/assets/{collection}/{id}`. */
+    dir?: string;
+    /**
+     * The MDX inserted for an image: a string, or markup plus import lines it needs (added when the entry
+     * doesn't have them yet). Default: `![alt](path)`.
+     */
+    snippet?: (image: ImageInfo) => string | { markup: string; imports?: string[] };
 }
 
 export interface TypographyOptions {
@@ -38,6 +64,8 @@ export interface MdxEditorOptions {
     callouts?: string[];
     /** Match the site's satteri-emoji setup, so `:shortcode:` previews and completes; `false` turns it off. */
     emoji?: EmojiOptions | false;
+    /** Where pasted and dropped images are saved and what's inserted for them; `false` turns it off. */
+    images?: ImageOptions | false;
 }
 
 /** A collection with its folder resolved to an absolute path. */
@@ -58,6 +86,20 @@ export interface ClientConfig {
     callouts: string[];
     /** Whether `GET /emoji` serves a shortcode table. */
     emoji: boolean;
+    /** Whether pasted and dropped images are saved (`POST /upload`). */
+    images: boolean;
+    /** The URL the entry's folder is served at in dev, for showing its relative image paths. */
+    fileBase: string;
+}
+
+/** `POST /upload`: what to insert for a saved image. */
+export interface UploadResult {
+    /** The saved file, relative to the project root. */
+    file: string;
+    markup: string;
+    imports: string[];
+    /** The alt text's range in `markup`, to select it after inserting. */
+    alt: [number, number] | null;
 }
 
 /** One prop of a component, read from its `Props` type. */

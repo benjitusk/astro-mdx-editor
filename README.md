@@ -14,23 +14,26 @@ re-serialising, so opening and saving a file changes no bytes.
 
 ## Use it in a site
 
-```sh
-npm i -D file:../astro-mdx-editor
-```
+Check this repo out next to the site (e.g. `~/Projects/astro-mdx-editor` beside `~/Projects/thoughts`) and
+load it from the site's config only when it's there. It isn't an npm dependency, so CI and other machines build the
+site without it.
 
 ```js
 // astro.config.mjs
-import mdxEditor from 'astro-mdx-editor';
+import { existsSync } from 'node:fs';
+
+const editorEntry = new URL('../astro-mdx-editor/src/index.ts', import.meta.url);
+const mdxEditor = existsSync(editorEntry) ? (await import(editorEntry.href)).default : null;
 
 export default defineConfig({
     integrations: [
         mdx(),
-        mdxEditor({
+        mdxEditor?.({
             shell: './src/mdx-editor/Shell.astro',
             globals: './src/mdx-editor/globals.ts',
             collections: { essays: {} },
         }),
-    ],
+    ].filter(Boolean),
 });
 ```
 

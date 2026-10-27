@@ -31,6 +31,11 @@ src/integration.ts ── astro:config:setup ── injectRoute, Vite plugin (vi
 `server.environments.ssr.runner.import()`, so it goes through the site's real MDX pipeline. It's rendered
 with `experimental_AstroContainer`, with `@astrojs/mdx/server.js` registered as the `astro:jsx` renderer.
 
+**Loading.** Sites import `src/index.ts` from a sibling checkout (see README), not from npm, so their
+lockfiles and CI never reference this repo. The client's dependencies stay in this repo's `node_modules`.
+The integration excludes them from the site's dependency optimizer (which resolves from the site root
+and can't find them), and Vite serves them as plain ES modules, one copy each.
+
 ## Client (browser, bundled by the site's Vite)
 
 | File                        | Role                                                                                                                                  |

@@ -1,5 +1,6 @@
 import type { AstroConfig, AstroIntegration } from 'astro';
 import { randomBytes } from 'node:crypto';
+import { readdirSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountApi } from './server/api.ts';
@@ -10,6 +11,31 @@ import type { MdxEditorOptions, ResolvedCollection } from './types.ts';
 
 const pkgRoot = fileURLToPath(new URL('..', import.meta.url));
 const page = (name: string) => fileURLToPath(new URL(`./pages/${name}`, import.meta.url));
+
+/**
+ * The client's dependencies live in this package's node_modules, which the site's dependency
+ * optimizer can't resolve from the site root. They are all plain ES modules, so they are excluded
+ * from optimizing and served as they are (one copy each, from here).
+ */
+function clientDependencies(): string[] {
+    const modules = join(pkgRoot, 'node_modules');
+    const names: string[] = [];
+    for (const entry of safeReaddir(modules)) {
+        if (entry.startsWith('.')) continue;
+        if (entry.startsWith('@')) {
+            for (const sub of safeReaddir(join(modules, entry))) names.push(`${entry}/${sub}`);
+        } else names.push(entry);
+    }
+    return names.filter((n) => /^(@codemirror|@lezer|@marijn)\/|^(style-mod|w3c-keyname|crelt|turndown)$/.test(n));
+}
+
+function safeReaddir(dir: string): string[] {
+    try {
+        return readdirSync(dir);
+    } catch {
+        return [];
+    }
+}
 
 export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
     // A fresh token per dev-server start; it is only ever served inside the editor page.
@@ -50,6 +76,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                         // serving, and Astro and MDX must resolve to the site's copies, never ours.
                         server: { fs: { allow: [root, pkgRoot] } },
                         resolve: { dedupe: ['astro', '@astrojs/mdx'] },
+                        optimizeDeps: { exclude: clientDependencies() },
                     },
                 });
                 logger.info('Editor at /__edit');

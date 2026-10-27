@@ -21,6 +21,7 @@ import {
     toggleQuote,
 } from './formatting.ts';
 import { pickCallout } from './callouts.ts';
+import { togglePanel } from './fmpanel.ts';
 import { componentCommands } from './components.ts';
 import { openPropsAtCursor } from './props.ts';
 import { pickComponent } from './slash.ts';
@@ -132,6 +133,7 @@ export function commandTable(app: AppActions): Command[] {
             },
         },
 
+        { id: 'file.frontmatter', label: 'Frontmatter panel', group: 'App', key: 'Mod-Alt-m', run: togglePanel },
         { id: 'file.save', label: 'Save now', group: 'App', key: 'Mod-s', run: action(app.save) },
         { id: 'app.palette', label: 'Command palette', group: 'App', key: 'Mod-p', run: action(app.palette) },
         {

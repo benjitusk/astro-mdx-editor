@@ -99,3 +99,26 @@ export interface Registry {
     /** The quote the collection writes string props with. */
     quote: '"' | "'";
 }
+
+/** The JSON Schema subset the frontmatter panel reads (as produced by zod's `toJSONSchema`). */
+export interface FieldSchema {
+    type?: string | string[];
+    format?: string;
+    enum?: unknown[];
+    const?: unknown;
+    minimum?: number;
+    maximum?: number;
+    description?: string;
+    default?: unknown;
+    properties?: Record<string, FieldSchema>;
+    required?: string[];
+    additionalProperties?: boolean | FieldSchema;
+    items?: FieldSchema;
+    anyOf?: FieldSchema[];
+}
+
+/** `GET /schema`: a collection's frontmatter schema, and the JSDoc above each field by dotted path. */
+export interface CollectionSchema {
+    schema: FieldSchema;
+    docs: Record<string, string>;
+}

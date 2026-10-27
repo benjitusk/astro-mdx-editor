@@ -9,6 +9,7 @@ import { calloutClicks, calloutLooks, calloutTypes, loadCalloutLooks } from './c
 import { commandKeymap, commandTable } from './commands.ts';
 import { componentExtensions } from './components.ts';
 import { emojiCompletions, emojiTable, loadEmoji } from './emoji.ts';
+import { bodyStart, frontmatterExtensions, loadSchema } from './fmpanel.ts';
 import { jsxField } from './jsx.ts';
 import { livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
@@ -52,6 +53,7 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
             extensions: [
                 stateExtensions(text),
                 componentExtensions(api),
+                frontmatterExtensions(),
                 calloutTypes.of(cfg.callouts),
                 calloutClicks,
                 // One completion config: `/` menu at a line start, emoji after `:`.
@@ -67,10 +69,13 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
             ],
         }),
     });
+    // Start in the body, not in front of the (collapsed) frontmatter.
+    view.dispatch({ selection: { anchor: bodyStart(view.state) } });
     restoreSnapshot(view, cfg);
     handleReloads(view, saver, cfg);
     void loadCalloutLooks(view, api);
     void loadRegistry(view, api);
+    void loadSchema(view, api);
     if (cfg.emoji) void loadEmoji(view, cfg.token);
     return { view, saver, commands };
 }

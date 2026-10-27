@@ -3,6 +3,7 @@ import { h } from './dom.ts';
 import { blockRange, renderedAt } from './components.ts';
 import { allElements, jsxField } from './jsx.ts';
 import { livePreview } from './livepreview.ts';
+import { metaField } from './meta.ts';
 
 /**
  * Click-accuracy test, run in the real page (`?selftest`) so the site's fonts and CSS are in play.
@@ -57,9 +58,11 @@ function samples(view: EditorView) {
     const prefixes = prefixRanges(view);
     const inRange = (ranges: [number, number][], p: number) => ranges.some(([f, t]) => p >= f && p < t);
     const out: { pos: number; line: number; kind: string; expect?: number; marked?: boolean }[] = [];
+    // The frontmatter is a bar that opens the panel, not text.
+    const fm = view.state.field(metaField).frontmatter;
     for (let n = 1; n <= doc.lines; n++) {
         const l = doc.line(n);
-        if (!l.text.trim()) continue;
+        if (!l.text.trim() || (fm && l.from <= fm.to)) continue;
         const visible = [];
         for (let p = l.from; p < l.to; p++) {
             if (!inRange(hidden, p) && !inRange(prefixes, p) && l.text[p - l.from] !== ' ') visible.push(p);
@@ -157,9 +160,14 @@ async function renderedClicks(view: EditorView, away: (line: number) => number) 
         await frame();
         await frame();
         const { from } = blockRange(view.state, el);
-        const dom = [...view.contentDOM.querySelectorAll<HTMLElement>('.mdx-render')].find(
-            (d) => view.posAtDOM(d) === from
-        );
+        const find = () =>
+            [...view.contentDOM.querySelectorAll<HTMLElement>('.mdx-render')].find((d) => view.posAtDOM(d) === from);
+        // Renders can still be arriving (the server's cache clears whenever a source file changes).
+        let dom = find();
+        for (let i = 0; i < 50 && dom?.querySelector('.mdx-pending'); i++) {
+            await new Promise((r) => setTimeout(r, 100));
+            dom = find();
+        }
         if (!dom || dom.querySelector('.mdx-pending')) continue;
         const source = view.state.sliceDoc(el.from, el.to);
         const words: { node: Text; offset: number; word: string }[] = [];

@@ -9,6 +9,7 @@ import { entryForPath, resolveCollections } from './server/entries.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
+import { createSchemas } from './server/schema.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
 import type { MdxEditorOptions, ResolvedCollection } from './types.ts';
 
@@ -29,7 +30,7 @@ function clientDependencies(): string[] {
             for (const sub of safeReaddir(join(modules, entry))) names.push(`${entry}/${sub}`);
         } else names.push(entry);
     }
-    return names.filter((n) => /^(@codemirror|@lezer|@marijn)\/|^(style-mod|w3c-keyname|crelt|turndown)$/.test(n));
+    return names.filter((n) => /^(@codemirror|@lezer|@marijn)\/|^(style-mod|w3c-keyname|crelt|turndown|yaml)$/.test(n));
 }
 
 function safeReaddir(dir: string): string[] {
@@ -95,6 +96,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                     token,
                     collections,
                     renderer: createRenderer(server, root),
+                    schemas: createSchemas(server, root),
                     registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),
                     emoji: () => {
                         if (options.emoji === false) return Promise.resolve(null);

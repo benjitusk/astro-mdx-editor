@@ -1,4 +1,4 @@
-import type { ClientConfig, Registry } from '../types.ts';
+import type { ClientConfig, CollectionSchema, Registry } from '../types.ts';
 
 // Shared with src/server/api.ts; duplicated so the client bundle doesn't pull in Node modules.
 export const API_BASE = '/__edit/api';
@@ -28,6 +28,11 @@ export function createApi(cfg: ClientConfig) {
                 body: JSON.stringify({ collection: cfg.collection, id: cfg.id, source, esm }),
             });
             if (!r.ok) throw new Error(`render failed: ${r.status}`);
+            return r.json();
+        },
+        async schema(): Promise<CollectionSchema> {
+            const r = await fetch(`${API_BASE}/schema?collection=${encodeURIComponent(cfg.collection)}`, { headers });
+            if (!r.ok) throw new Error(`schema failed: ${r.status}`);
             return r.json();
         },
         async registry(): Promise<Registry> {

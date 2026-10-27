@@ -6,6 +6,7 @@ import type { EmojiTable } from './emoji.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
 import type { createRegistry } from './registry.ts';
+import type { createSchemas } from './schema.ts';
 import type { createRenderer } from './render.ts';
 
 export const API_BASE = '/__edit/api';
@@ -20,6 +21,7 @@ interface Context {
     collections: ResolvedCollection[];
     renderer: ReturnType<typeof createRenderer>;
     registry: ReturnType<typeof createRegistry>;
+    schemas: ReturnType<typeof createSchemas>;
     /** The site's emoji shortcodes, or null when emoji are off or the site has no satteri-emoji. */
     emoji: () => Promise<EmojiTable | null>;
 }
@@ -80,6 +82,13 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
             if (url.pathname === '/emoji' && req.method === 'GET') {
                 const table = await ctx.emoji();
                 return table ? send(res, 200, table) : send(res, 404, { error: 'no emoji' });
+            }
+            if (url.pathname === '/schema' && req.method === 'GET') {
+                const collection = url.searchParams.get('collection') ?? '';
+                if (!ctx.collections.some((c) => c.name === collection))
+                    return send(res, 404, { error: 'no such collection' });
+                const schema = await ctx.schemas.schema(collection);
+                return schema ? send(res, 200, schema) : send(res, 404, { error: 'no schema' });
             }
             if (url.pathname === '/registry' && req.method === 'GET') {
                 const file = await findEntry(

@@ -4,6 +4,7 @@ import { EditorState, type Extension } from '@codemirror/state';
 import { drawSelection, EditorView } from '@codemirror/view';
 import type { ClientConfig } from '../types.ts';
 import { createApi } from './api.ts';
+import { livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
 import { handleReloads, restoreSnapshot } from './reload.ts';
 import { Saver, saveExtension } from './save.ts';
@@ -15,6 +16,7 @@ export function stateExtensions(text: string): Extension[] {
         EditorState.lineSeparator.of(text.includes('\r\n') ? '\r\n' : '\n'),
         markdown({ base: markdownLanguage }),
         metaField,
+        livePreviewExtensions,
         history(),
     ];
 }

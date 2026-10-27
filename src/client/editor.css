@@ -68,3 +68,157 @@
     font: inherit;
     cursor: pointer;
 }
+
+/* ---- Live preview (src/client/livepreview.ts) ----
+ * Prose's direct-child spacing can't reach through CodeMirror's DOM, so each line type gets the
+ * equivalent spacing here. Everything uses the site's tokens, with fallbacks. */
+.mdx-editor .cm-line {
+    position: relative;
+}
+.mdx-editor .md-mark {
+    color: var(--text-subtle, #999);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75em;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+/* Revealed block markers hang in the margin, so the text never moves. */
+.mdx-editor .md-hang {
+    position: absolute;
+    right: 100%;
+    padding-right: 0.5em;
+    white-space: pre;
+}
+
+/* Blank lines are the gaps between blocks. */
+.mdx-editor .md-blank {
+    line-height: var(--space-5, 1.25rem);
+}
+.mdx-editor .md-blank-after-h {
+    line-height: var(--space-3, 0.75rem);
+}
+
+/* Headings: the text is a real h1–h6, so the site's heading styles apply. */
+.mdx-editor .cm-line .md-heading {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+.mdx-editor .md-h {
+    line-height: var(--leading-snug, 1.25);
+}
+.mdx-editor .md-h2,
+.mdx-editor .md-h3 {
+    padding-top: calc(var(--space-12, 3rem) - var(--space-5, 1.25rem));
+}
+
+/* Blockquotes, as Prose draws them. */
+.mdx-editor .md-bq {
+    padding-left: var(--space-5, 1.25rem);
+    border-left: 3px solid var(--border-strong, #ccc);
+    color: var(--text-muted, #666);
+}
+
+/* Lists: hanging markers at the item's indent. */
+.mdx-editor .md-li {
+    padding-left: var(--md-indent);
+}
+.mdx-editor .md-li-gap {
+    padding-top: var(--space-2, 0.5rem);
+}
+.mdx-editor .md-listmark {
+    position: absolute;
+    right: calc(100% - var(--md-indent) + 0.35em);
+    white-space: pre;
+    font-variant-numeric: tabular-nums;
+}
+.mdx-editor .md-ol {
+    color: var(--accent, currentColor);
+}
+.mdx-editor .md-ul:not([data-shown]) {
+    color: transparent;
+}
+.mdx-editor .md-ul:not([data-shown])::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent, currentColor);
+}
+
+/* Fenced code, as Prose's pre. */
+.mdx-editor .md-fence {
+    padding: 0 var(--space-5, 1.25rem);
+    border-inline: 1px solid var(--border, #ddd);
+    background: var(--surface, #fff);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: var(--text-sm, 0.9375rem);
+    line-height: var(--leading-normal, 1.5);
+}
+.mdx-editor .md-fence-first {
+    padding-top: var(--space-3, 0.75rem);
+    border-top: 1px solid var(--border, #ddd);
+    border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
+}
+.mdx-editor .md-fence-last {
+    padding-bottom: var(--space-3, 0.75rem);
+    border-bottom: 1px solid var(--border, #ddd);
+    border-radius: 0 0 var(--radius-md, 10px) var(--radius-md, 10px);
+}
+.mdx-editor .md-fence-first.md-fence-last {
+    border-radius: var(--radius-md, 10px);
+}
+
+/* Section break. */
+.mdx-editor .md-hr {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+}
+.mdx-editor .md-hr::after {
+    content: '· · ·';
+    color: var(--accent, currentColor);
+    font-family: var(--font-display, inherit);
+    font-size: var(--text-xl, 1.5rem);
+    letter-spacing: 0.5em;
+}
+
+/* Links: real <a> without href, so clicking edits instead of navigating. */
+.mdx-editor .md-link {
+    cursor: text;
+}
+
+/* Frontmatter, imports and raw JSX: quiet source. */
+.mdx-editor .md-meta,
+.mdx-editor .md-jsx {
+    color: var(--text-subtle, #888);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.8em;
+    line-height: 1.6;
+}
+.mdx-editor .md-meta-last {
+    padding-bottom: var(--space-5, 1.25rem);
+}
+.mdx-editor .md-jsx-tag,
+.mdx-editor .md-jsx-attr,
+.mdx-editor .md-jsx-value {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.8em;
+}
+.mdx-editor .md-jsx .md-jsx-tag,
+.mdx-editor .md-jsx .md-jsx-attr,
+.mdx-editor .md-jsx .md-jsx-value {
+    font-size: 1em;
+}
+.mdx-editor .md-jsx-tag {
+    color: var(--mdx-editor-tag, var(--accent-hover, #943b26));
+}
+.mdx-editor .md-jsx-attr {
+    color: var(--mdx-editor-attr, var(--text-muted, #666));
+}
+.mdx-editor .md-jsx-value {
+    color: var(--mdx-editor-value, #5b7f6a);
+}
+.mdx-editor .md-comment {
+    color: var(--text-subtle, #888);
+}

@@ -175,3 +175,31 @@ the alt text is marked with a placeholder character while it runs, so the editor
 the snippet wraps it.
 **Why.** Images then go through Astro's image pipeline like hand-added ones, the file stays readable
 MDX, and each site keeps its own convention for images without the editor knowing it.
+
+## 22. Component children are parsed as MDX does, with a composite block (2026-10-27)
+
+**Decision.** A Lezer Markdown extension (`mdxblocks.ts`) parses a component's opening tag alone on its
+line as the start of a composite block, like a blockquote, whose base indentation is its children's
+indentation; the matching closing tag ends it. Lone self-closing, closing and multi-line tags are blocks
+of exactly their own lines, and end a paragraph above them.
+**Why.** The notebook indents children by 4 spaces. Lezer stops a list at 4 spaces and runs an HTML
+block on to the next blank line, so the frames showed broken lists and raw text after tags, unlike the
+render beside them. MDX (with indented code off) has neither rule. A composite block reuses Lezer's own
+mechanism for nested containers instead of re-parsing children separately.
+
+## 23. Soft line breaks show as spaces (2026-10-27)
+
+**Decision.** A line break inside a paragraph is replaced by an atomic space widget, so a hard-wrapped
+paragraph flows as one, as on the page. Hard breaks (two spaces, `\`), quotes, component children and
+the imports keep their lines.
+**Why.** The notebook wraps its source at about 120 columns; shown line by line, it looked nothing like
+the published page. Replacing the newline changes only the display: the text, and so the file, keep
+their line breaks, and deleting the space deletes the newline, as it looks.
+
+## 24. Tables and task boxes are drawn in the client (2026-10-27)
+
+**Decision.** GFM tables are drawn from the Lezer tree as a `<table>` (cell text with its inline
+Markdown) instead of through `POST /render`; `[ ]`/`[x]` are checkboxes. A table shows its source while
+the selection is in it.
+**Why.** Both are plain Markdown the site styles through Prose's descendant rules, so a client-side
+`<table>` looks the same, appears without a round trip, and keeps each cell's source offset for clicks.

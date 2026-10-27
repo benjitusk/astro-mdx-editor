@@ -55,21 +55,26 @@ const entry = await getEntry(collection, id);
 
 Then run `astro dev` and open `/__edit`.
 
+Sites whose entries import their components (rather than using `globals`) need nothing extra: the editor
+page imports every component the collection's entries import, so their CSS loads. Framework components
+(React and others) render through the site's own framework integration, as static HTML.
+
 To edit frontmatter fields in the page itself, mark the elements that show them when the layout is
 rendered for the editor, e.g. `<h1 data-mdx-field={editing ? 'title' : undefined}>{title}</h1>`.
 
 ## Options
 
-| Option        | Meaning                                                                                                                                 |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `shell`       | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props.                  |
-| `globals`     | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads.   |
-| `collections` | `{ [name]: { dir?, pageUrl? } }`. `dir` defaults to `src/content/<name>`.                                                               |
-| `typography`  | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                      |
-| `keymap`      | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                       |
-| `callouts`    | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site. |
-| `emoji`       | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.        |
-| `images`      | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                  |
+| Option                 | Meaning                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `shell`                | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props.                  |
+| `globals`              | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads.   |
+| `collections`          | `{ [name]: { dir?, pageUrl? } }`. `dir` defaults to `src/content/<name>`.                                                               |
+| `typography`           | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                      |
+| `keymap`               | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                       |
+| `callouts`             | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site. |
+| `emoji`                | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.        |
+| `callouts` (extending) | `import { DEFAULT_CALLOUT_TYPES } from '…/astro-mdx-editor/src/index.ts'`, then `[...DEFAULT_CALLOUT_TYPES, 'console']`.                |
+| `images`               | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                  |
 
 ### Images
 

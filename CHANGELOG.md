@@ -82,7 +82,30 @@
 - Images show in the live preview: the image alone with the cursor elsewhere, its source with the image
   under it when the cursor is on it. Relative paths load through Vite's `/@fs/`.
 
+- Sites whose entries import their components (the notebook): a generated `virtual:mdx-editor/styles`
+  module imports every component the collections' entries import, so their CSS loads on the editor page.
+- Framework components (React, Preact, Vue, Svelte, Solid) render: the site's framework integrations are
+  detected and their server renderers registered with the Container API. They render as static HTML.
+- `DEFAULT_CALLOUT_TYPES` is exported, to add a site's own callout types (`[...DEFAULT_CALLOUT_TYPES, 'console']`).
+- Component tags parse as MDX reads them (`src/client/mdxblocks.ts`): a lone opening tag starts a block
+  whose children are parsed relative to their own indentation (the notebook's 4-space-indented Callout
+  children, lists included), text right after a tag is Markdown, and self-closing, closing and
+  multi-line tags are blocks of their own lines that end a paragraph above them.
+- Soft-wrapped paragraphs flow as one paragraph, as on the page: a line break inside a paragraph shows
+  as a space and steps and deletes as one.
+- Tables are drawn as tables with the cursor elsewhere, and show their source (monospace) with it inside;
+  a click on a cell puts the caret in that cell.
+- Task list markers (`[ ]`, `[x]`) are checkboxes; a click toggles the source.
+- Components and code blocks in list items sit at the item's indent.
+- engineering-notebook is set up: Shell around `BlogPost`, the title edited in place, `console` callouts,
+  and images inserted as an import plus `<Figure>`.
+
 ### Fixed
 
+- CodeMirror's zero-width cursor anchors (`<img>`) picked up a site's `img` border, showing faint marks
+  around links and headings.
+- A click in a rendered component's empty padding snapped to the nearest text (a label prop) and opened
+  the props popover; it now enters the component.
+- Code blocks inside callouts used the callout's font.
 - A block inserted on an empty, unindented line (an image, a slash-menu block) put the cursor past the
   inserted text.

@@ -24,6 +24,7 @@ src/integration.ts ── astro:config:setup ── injectRoute, Vite plugin (vi
 | `src/server/render-entry.ts` | Runs inside the SSR runner: the Container API plus the MDX renderer, rendering with the site's globals as `components`.                                                                                                                                     |
 | `src/server/reload.ts`       | Routes full-page reloads per tab: editors get a custom event saying `content` or `code` (see Saving).                                                                                                                                                       |
 | `src/server/hash.ts`         | SHA-1 of the file text, shared by the API and the page.                                                                                                                                                                                                     |
+| `src/server/emoji.ts`        | `GET /emoji`: the shortcode table from the site's own satteri-emoji registry, merged in the site's catalog order.                                                                                                                                           |
 
 **Middleware has to be mounted in `astro:server:setup`.** A Vite plugin's `configureServer` added through
 `updateConfig` runs after Astro's page handler and never sees the request (found in the phase 0 spike).
@@ -53,7 +54,10 @@ and can't find them), and Vite serves them as plain ES modules, one copy each.
 | `src/client/typography.ts`  | Smart quotes, dashes and ellipsis, each its own undo step and skipped in code, JSX and frontmatter.                                                                                                                                          |
 | `src/client/paste.ts`       | A URL pasted over a selection makes a link. HTML is converted to Markdown with turndown. Cmd-Shift-V pastes plain text.                                                                                                                      |
 | `src/client/save.ts`        | Autosave, status, conflict banner, external-change reload.                                                                                                                                                                                   |
-| `src/client/palette.ts`     | The command palette and cheat sheet (`<dialog>`).                                                                                                                                                                                            |
+| `src/client/palette.ts`     | The command palette and cheat sheet.                                                                                                                                                                                                         |
+| `src/client/picker.ts`      | A filterable list in a `<dialog>`, shared by the palette and the callout type picker.                                                                                                                                                        |
+| `src/client/callouts.ts`    | Callout detection, the icon widget, insert/change type (Cmd-Shift-C, or a click on the icon), and the probe that measures the site's callout styles.                                                                                         |
+| `src/client/emoji.ts`       | `:shortcode:` widgets and completion, from the table `GET /emoji` serves.                                                                                                                                                                    |
 | `src/client/selftest.ts`    | The in-page click-accuracy test (`?selftest`).                                                                                                                                                                                               |
 | `src/client/editor.css`     | Editor styles, built on the site's design tokens (`--space-*`, `--accent`…) with fallbacks.                                                                                                                                                  |
 
@@ -69,7 +73,16 @@ and can't find them), and Vite serves them as plain ES modules, one copy each.
 - **Inline markers** (`**`, `_`, `` ` ``, `[`, `](…)`) are the only reveals that shift text, and only in
   the node the cursor is in.
 - **Clicks lean toward the content.** A transaction filter moves a pointer selection that lands at a
-  hidden prefix to the content side of it.
+  hidden prefix to the content side of it, past back-to-back prefixes (`> ` then `[!type] `).
+- **Callouts are cards made of lines.** Each line of the quote is a slice of the card, drawn behind it
+  with `::before`: top edge on the first line, bottom on the last. `[!type] ` is an atomic icon widget.
+  The card's look is measured: on load the client renders `> [!type]` for every type through
+  `POST /render`, puts the HTML in a hidden probe inside Prose, reads `getComputedStyle`, and writes
+  `--co-*` variables per type into a stylesheet. It measures again when the colour scheme changes.
+- **Emoji are characters.** A known `:shortcode:` is an atomic widget wherever satteri-emoji would
+  convert it, cursor or not, so it never expands under the caret.
+- **The selection is a tint over the text** (`.cm-selectionLayer` above the content), because line
+  backgrounds (cards, frames) would otherwise paint over it.
 
 ### Saving
 

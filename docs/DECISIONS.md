@@ -94,3 +94,20 @@ inside a tag (from search, undo or a click on the chip) also shows that element 
 empty elements always edit raw.
 **Why.** That matches "the cursor elsewhere shows the render" without a mode to remember. It also lets
 props be edited directly until the props editor lands in phase 4.
+
+## 14. Callout looks are measured from the site, not restyled (2026-10-27)
+
+**Decision.** The editor renders one callout of each type through the site's pipeline into a hidden
+probe inside Prose and copies the computed styles (background, borders, radius, padding, title and
+body type, icon) into CSS variables on the card's lines.
+**Why.** Prose's callout rules (`.prose .callout > .callout-title`) need DOM the editor can't have, and
+each site styles callouts differently. Measuring gives an exact match for any site and theme, the
+site's own icons, and the types it actually renders as callouts.
+
+## 15. Callout markers and emoji are atomic and never expand (2026-10-27)
+
+**Decision.** `[!type] ` is an icon widget and `:shortcode:` an emoji widget, whether or not the cursor
+is near. The caret steps over them, and Backspace deletes them whole. A callout's type changes through
+a picker (Cmd-Shift-C or a click on the icon).
+**Why.** Expanding them under the cursor, as Obsidian does, shifts the text the user just clicked on
+(design rule: reveals never move text). Treating an emoji as one character is also how it reads.

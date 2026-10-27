@@ -38,3 +38,12 @@
   Render errors show on the block.
 - The click test covers rendered components (482/482 on _judging_ at desktop width, 483/483 at phone
   width, 17 of them clicks inside renders).
+- Callouts (`> [!type] Title`) shown as the site's cards, with the look measured from the site's own
+  render of each type (light and dark). The type marker is the type's icon; a click on it, or
+  Cmd-Shift-C, picks a type. Cmd-Shift-C also starts a callout on a blank line, or turns the paragraph
+  or quote at the cursor into one.
+- Emoji: `:shortcode:` shows as the emoji wherever the site's satteri-emoji would convert it, and steps
+  and deletes as one character. Typing `:` and two letters completes. `GET /__edit/api/emoji` serves
+  the site's shortcode table.
+- The selection is drawn as a tint over the text, so it shows on cards and frames.
+- `callouts` and `emoji` options.

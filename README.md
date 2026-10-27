@@ -53,13 +53,15 @@ Then run `astro dev` and open `/__edit`.
 
 ## Options
 
-| Option        | Meaning                                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `shell`       | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props.                |
-| `globals`     | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads. |
-| `collections` | `{ [name]: { dir?, pageUrl? } }`. `dir` defaults to `src/content/<name>`.                                                             |
-| `typography`  | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                    |
-| `keymap`      | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                     |
+| Option        | Meaning                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `shell`       | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props.                  |
+| `globals`     | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads.   |
+| `collections` | `{ [name]: { dir?, pageUrl? } }`. `dir` defaults to `src/content/<name>`.                                                               |
+| `typography`  | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                      |
+| `keymap`      | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                       |
+| `callouts`    | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site. |
+| `emoji`       | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.        |
 
 ## Develop
 

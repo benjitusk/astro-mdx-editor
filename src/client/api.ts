@@ -40,6 +40,28 @@ export function createApi(cfg: ClientConfig) {
             if (!r.ok) throw new Error(`registry failed: ${r.status}`);
             return r.json();
         },
+        async entries(): Promise<{ collection: string; id: string }[]> {
+            const r = await fetch(`${API_BASE}/entries`, { headers });
+            if (!r.ok) throw new Error(`entries failed: ${r.status}`);
+            return r.json();
+        },
+        /** The entry as committed at HEAD; null when it's new. */
+        async diff(): Promise<{ head: string | null }> {
+            const r = await fetch(`${API_BASE}/diff?${query}`, { headers });
+            if (!r.ok) throw new Error(`diff failed: ${r.status}`);
+            return r.json();
+        },
+        /** Commit the saved entry and the images it newly references. */
+        async commit(message: string): Promise<{ commit: string; files: string[] }> {
+            const r = await fetch(`${API_BASE}/commit`, {
+                method: 'POST',
+                headers: { ...headers, 'content-type': 'application/json' },
+                body: JSON.stringify({ collection: cfg.collection, id: cfg.id, message }),
+            });
+            const body = await r.json().catch(() => null);
+            if (!r.ok) throw new Error(body?.error ?? `commit failed: ${r.status}`);
+            return body;
+        },
         /** Save an image into the entry's images folder; `esm` is the entry's import lines, for naming. */
         async upload(file: Blob & { name?: string }, esm: string): Promise<UploadResult> {
             const r = await fetch(`${API_BASE}/upload`, {

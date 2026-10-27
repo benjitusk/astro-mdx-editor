@@ -3,6 +3,12 @@ export interface CollectionOptions {
     dir?: string;
     /** The published URL of an entry, for "open page" links and the live-page pane. */
     pageUrl?: (id: string) => string;
+    /**
+     * The frontmatter of a new entry made from the editor's index, e.g.
+     * `(title) => ({ title, pubDate: new Date(), draft: true })`. Dates are written as `YYYY-MM-DD`; fields
+     * the schema requires that it leaves out get an empty value. Default: `{ title }`.
+     */
+    newEntry?: (title: string) => Record<string, unknown>;
     /** Overrides the top-level `images` for this collection; `false` turns paste and drop off here. */
     images?: ImageOptions | false;
 }

@@ -123,6 +123,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                     root,
                     collections,
                     images: (name) => imageOptions(options, name),
+                    newEntry: (name) => options.collections[name]?.newEntry,
                     renderer: createRenderer(server, root, frameworkRenderers(config, root)),
                     schemas: createSchemas(server, root),
                     registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),

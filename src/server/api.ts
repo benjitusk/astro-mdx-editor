@@ -5,7 +5,9 @@ import type { ImageOptions, ResolvedCollection } from '../types.ts';
 import type { EmojiTable } from './emoji.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
+import { commitEntry, headVersion } from './git.ts';
 import { saveImage } from './images.ts';
+import { createEntry, newEntryText } from './newentry.ts';
 import type { createRegistry } from './registry.ts';
 import type { createSchemas } from './schema.ts';
 import type { createRenderer } from './render.ts';
@@ -23,6 +25,8 @@ interface Context {
     token: string;
     root: string;
     collections: ResolvedCollection[];
+    /** A collection's `newEntry` template. */
+    newEntry: (collection: string) => ((title: string) => Record<string, unknown>) | undefined;
     /** A collection's image settings, or null when paste and drop are off for it. */
     images: (collection: string) => ImageOptions | null;
     renderer: ReturnType<typeof createRenderer>;
@@ -72,6 +76,25 @@ function allowed(req: IncomingMessage, token: string): boolean {
     }
 }
 
+/** Resolves when Astro next rewrites its content store (after a sync), or after `timeout` ms. */
+function contentSynced(server: ViteDevServer, timeout: number): Promise<void> {
+    return new Promise((done) => {
+        const onChange = (path: string) => {
+            if (!/[\\/]\.astro[\\/]data-store\.json$/.test(path)) return;
+            finish();
+        };
+        const finish = () => {
+            clearTimeout(timer);
+            server.watcher.off('change', onChange);
+            server.watcher.off('add', onChange);
+            done();
+        };
+        const timer = setTimeout(finish, timeout);
+        server.watcher.on('change', onChange);
+        server.watcher.on('add', onChange);
+    });
+}
+
 export function mountApi(server: ViteDevServer, ctx: Context) {
     server.middlewares.use(API_BASE, async (req, res) => {
         if (!allowed(req, ctx.token)) return send(res, 403, { error: 'forbidden' });
@@ -116,6 +139,36 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
                 if (!file || typeof body.source !== 'string') return send(res, 404, { error: 'no such entry' });
                 const esm = typeof body.esm === 'string' ? body.esm : undefined;
                 return send(res, 200, await ctx.renderer.render(file, body.source, esm));
+            }
+            if (url.pathname === '/new' && req.method === 'POST') {
+                const body = JSON.parse(await readBody(req)) as { collection: string; title: string };
+                const collection = ctx.collections.find((c) => c.name === body.collection);
+                const title = typeof body.title === 'string' ? body.title.trim() : '';
+                if (!collection || !title) return send(res, 400, { error: 'a collection and a title are needed' });
+                const schema = await ctx.schemas.schema(collection.name).catch(() => null);
+                const text = newEntryText(title, ctx.newEntry(collection.name), schema?.schema ?? null);
+                // The editor page reads the entry from the content layer, so answer once it has synced.
+                const synced = contentSynced(server, 4000);
+                const id = await createEntry(collection, title, text);
+                await synced;
+                return send(res, 200, { collection: collection.name, id });
+            }
+            if (url.pathname === '/diff' && req.method === 'GET') {
+                const file = await findEntry(
+                    ctx.collections,
+                    url.searchParams.get('collection') ?? '',
+                    url.searchParams.get('id') ?? ''
+                );
+                if (!file) return send(res, 404, { error: 'no such entry' });
+                return send(res, 200, { head: await headVersion(file.path) });
+            }
+            if (url.pathname === '/commit' && req.method === 'POST') {
+                const body = JSON.parse(await readBody(req)) as { collection: string; id: string; message: string };
+                const file = await findEntry(ctx.collections, body.collection, body.id);
+                const message = typeof body.message === 'string' ? body.message.trim() : '';
+                if (!file || !message) return send(res, 400, { error: 'an entry and a message are needed' });
+                const { text } = await readEntry(file);
+                return send(res, 200, await commitEntry(file.path, text, message));
             }
             if (url.pathname === '/upload' && req.method === 'POST') {
                 const body = JSON.parse(await readBody(req, MAX_UPLOAD)) as {

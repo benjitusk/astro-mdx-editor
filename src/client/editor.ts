@@ -22,6 +22,8 @@ import { handleReloads, restoreSnapshot } from './reload.ts';
 import { Saver, saveExtension } from './save.ts';
 import { slashCompletions } from './slash.ts';
 import { typography, wrapOnType } from './typography.ts';
+import { gitPane, livePage, scratchpad } from './workflow.ts';
+import { openOutline, quickOpen, toggleFocus, writingExtensions } from './writing.ts';
 
 /** Everything that doesn't need a view: shared by the editor and the round-trip test. */
 export function stateExtensions(text: string): Extension[] {
@@ -44,11 +46,27 @@ export function stateExtensions(text: string): Extension[] {
 export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: string) {
     const api = createApi(cfg);
     const saver = new Saver(api, cfg, text);
-    const commands = commandTable({
-        save: () => void saver.save(),
-        palette: () => openPalette(view, commands, cfg.keymap),
-        cheatsheet: () => openCheatsheet(view, commands, cfg.keymap),
-    });
+    const commands = [
+        ...commandTable({
+            save: () => void saver.save(),
+            palette: () => openPalette(view, commands, cfg.keymap),
+            cheatsheet: () => openCheatsheet(view, commands, cfg.keymap),
+        }),
+        { id: 'app.open', label: 'Open entry…', group: 'Writing', key: 'Mod-o', run: quickOpen(api, cfg) },
+        { id: 'app.outline', label: 'Jump to heading…', group: 'Writing', key: 'Mod-Shift-o', run: openOutline },
+        { id: 'app.focus', label: 'Focus mode', group: 'Writing', key: 'Mod-Alt-.', run: toggleFocus },
+        {
+            id: 'app.scratch',
+            label: 'Scratchpad',
+            group: 'Writing',
+            key: 'Mod-j',
+            run: scratchpad(cfg, (doc) => stateExtensions(doc)),
+        },
+        { id: 'app.git', label: 'Changes and commit', group: 'Writing', key: 'Mod-Shift-g', run: gitPane(api, saver) },
+        ...(cfg.pageUrl
+            ? [{ id: 'app.live', label: 'Live page', group: 'Writing', key: 'Mod-\\', run: livePage(cfg) }]
+            : []),
+    ];
     const view: EditorView = new EditorView({
         parent,
         state: EditorState.create({
@@ -72,6 +90,7 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
                 EditorView.lineWrapping,
                 EditorView.contentAttributes.of({ 'spellcheck': 'true', 'autocorrect': 'off', 'aria-label': 'Editor' }),
                 saveExtension(saver),
+                writingExtensions,
             ],
         }),
     });

@@ -1,6 +1,6 @@
 ---
-// /__edit: every entry the editor can open.
-import { entries, pageUrl } from 'virtual:mdx-editor/server';
+// /__edit: every entry the editor can open, and a form per collection for a new one.
+import { entries, pageUrl, token } from 'virtual:mdx-editor/server';
 
 const list = await entries();
 const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collection);
@@ -46,6 +46,33 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
             a {
                 color: #b34a31;
             }
+            form {
+                display: flex;
+                gap: 0.5rem;
+                margin: 0.5rem 0 1rem;
+            }
+            form input {
+                flex: 1;
+                padding: 0.35rem 0.6rem;
+                border: 1px solid #d8cdb9;
+                border-radius: 6px;
+                font: inherit;
+                color: inherit;
+                background: transparent;
+            }
+            form button {
+                padding: 0.35rem 0.9rem;
+                border: 0;
+                border-radius: 6px;
+                font: inherit;
+                color: #fff;
+                background: #b34a31;
+                cursor: pointer;
+            }
+            .error {
+                color: #b34a31;
+                font-size: 0.875rem;
+            }
             .page {
                 margin-left: auto;
                 color: #8a8175;
@@ -71,6 +98,10 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
             [...byCollection].map(([collection, items]) => (
                 <section>
                     <h2>{collection}</h2>
+                    <form data-collection={collection}>
+                        <input name='title' placeholder={`Title of a new ${collection.replace(/s$/, '')}`} required />
+                        <button>New</button>
+                    </form>
                     <ul>
                         {items.map((e: { collection: string; id: string }) => {
                             const url = pageUrl(e.collection, e.id);
@@ -89,5 +120,42 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
                 </section>
             ))
         }
+        <script type='application/json' id='mdx-editor-token' set:html={JSON.stringify(token)} />
+        <script>
+            // A new entry: the server writes it from the site's template, then the editor opens it.
+            const token = JSON.parse(document.getElementById('mdx-editor-token')!.textContent!);
+            let creating = false;
+            // Like an editor tab, take reloads as events (src/server/reload.ts), so making an entry
+            // doesn't reload this page before the editor opens.
+            const hot = import.meta.hot;
+            if (hot) {
+                const hello = () => hot.send('mdx-editor:hello', {});
+                hello();
+                hot.on('vite:ws:connect', hello);
+                hot.on('mdx-editor:full-reload', (data: { kind: string }) => {
+                    if (data.kind !== 'content' || !creating) location.reload();
+                });
+            }
+            for (const form of document.querySelectorAll<HTMLFormElement>('form[data-collection]')) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    creating = true;
+                    const title = (form.elements.namedItem('title') as HTMLInputElement).value;
+                    const r = await fetch('/__edit/api/new', {
+                        method: 'POST',
+                        headers: { 'content-type': 'application/json', 'x-mdx-editor-token': token },
+                        body: JSON.stringify({ collection: form.dataset.collection, title }),
+                    });
+                    const body = await r.json();
+                    if (r.ok) location.href = `/__edit/${body.collection}/${body.id}`;
+                    else {
+                        creating = false;
+                        form.querySelector('.error')?.remove();
+                        form.insertAdjacentHTML('beforeend', '<span class="error"></span>');
+                        form.querySelector('.error')!.textContent = body.error ?? `Failed (${r.status})`;
+                    }
+                });
+            }
+        </script>
     </body>
 </html>

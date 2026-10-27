@@ -1,0 +1,46 @@
+{
+    "name": "astro-mdx-editor",
+    "version": "0.1.0",
+    "private": true,
+    "description": "A live-preview MDX editor that runs inside an Astro site's dev server.",
+    "type": "module",
+    "engines": {
+        "node": ">=22.18.0"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./pages/*": "./src/pages/*",
+        "./client/*": "./src/client/*",
+        "./server/*": "./src/server/*"
+    },
+    "scripts": {
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "roundtrip": "node scripts/roundtrip.ts"
+    },
+    "peerDependencies": {
+        "@astrojs/mdx": "^8.0.0",
+        "astro": "^7.0.0"
+    },
+    "dependencies": {
+        "@codemirror/commands": "^6.8.1",
+        "@codemirror/lang-markdown": "^6.3.4",
+        "@codemirror/language": "^6.11.3",
+        "@codemirror/search": "^6.5.11",
+        "@codemirror/state": "^6.5.2",
+        "@codemirror/view": "^6.38.6",
+        "@lezer/common": "^1.2.3",
+        "@lezer/markdown": "^1.4.3",
+        "turndown": "^7.2.1"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "@types/turndown": "^5.0.5",
+        "prettier": "^3.9.10",
+        "prettier-plugin-astro": "^0.14.1",
+        "typescript": "^5.9.0",
+        "vitest": "^3.2.0"
+    }
+}

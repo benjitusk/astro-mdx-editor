@@ -61,3 +61,15 @@
   line between a block's tags joins the frame when the cursor is on it (Enter after the last paragraph
   no longer drops to raw MDX).
 - Renders send the editor's current imports, so a newly imported component renders before the save.
+- Frontmatter panel: a side drawer (click the frontmatter bar, or Cmd-Alt-M) with a form built from
+  the collection's zod schema (`GET /__edit/api/schema`): date pickers, selects for enums, number
+  inputs with a slider for bounded numbers, checkboxes, comma lists, nested objects, YAML for anything
+  else, each field's JSDoc from the content config, required and range messages, and × to remove an
+  optional field. Keys outside the schema are listed as YAML.
+- Page fields: elements marked `data-mdx-field` (the essay's title and dek in thoughts) edit their
+  frontmatter field in place; Enter moves to the next field, then the body; Cmd-Z undoes in the editor.
+- The frontmatter shows as a one-line summary bar; `</>` or a search match inside it shows the YAML,
+  and the cursor can't land in front of it.
+- Frontmatter edits rewrite only the field's own text (`src/client/frontmatter.ts`), keeping
+  comments, key order, quoting and long lines elsewhere.
+- The click test skips the collapsed frontmatter and waits for renders that are still arriving.

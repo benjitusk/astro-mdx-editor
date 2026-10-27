@@ -10,6 +10,8 @@ re-serialising, so opening and saving a file changes no bytes.
   `Shell.astro` you own).
 - **Real components.** Components render through your actual MDX pipeline. Put the cursor inside one to
   edit its children; click its chip (or Cmd-Alt-,) for a props form built from the component's `Props`.
+- **Frontmatter panel.** A form built from your content collection's schema, with each field's comment
+  as help. Fields your layout marks with `data-mdx-field` (a title, a dek) are edited right in the page.
 - **Slash menu.** `/` at the start of a line inserts a component, with its required props, or a block.
 - **A full keyboard suite.** Cmd-P shows every command. Cmd-Shift-/ shows the cheat sheet.
 - **Dev only.** Nothing from the editor ends up in `astro build`.
@@ -52,6 +54,9 @@ const entry = await getEntry(collection, id);
 ```
 
 Then run `astro dev` and open `/__edit`.
+
+To edit frontmatter fields in the page itself, mark the elements that show them when the layout is
+rendered for the editor, e.g. `<h1 data-mdx-field={editing ? 'title' : undefined}>{title}</h1>`.
 
 ## Options
 

@@ -137,3 +137,30 @@ type into, and so does a blank line the cursor is on between a block's tags.
 **Why.** Each site has its own conventions (`word='x'` and blank lines in thoughts, `variant="x"` and
 indented children in the notebook). Copying what's already there keeps new text consistent without
 a per-component config.
+
+## 18. Frontmatter edits rewrite one field's text, never the whole YAML (2026-10-27)
+
+**Decision.** The panel and the page fields change the frontmatter through `fieldEdit`: the YAML is
+parsed (the `yaml` package) only for node ranges, and an edit replaces one value's text, adds one
+key's line (after the nearest earlier key in schema order), or removes one key's lines. A replaced
+scalar keeps its quote style; a list keeps flow style. YAML that doesn't parse is only editable as YAML.
+**Why.** Re-serialising the document, even with the Document API, folds long lines (the dek), and can
+change quoting and spacing in keys nobody touched. Editing ranges keeps the rule that the file changes
+only where the user changed it.
+
+## 19. The schema comes from the site's zod schema, docs from its comments (2026-10-27)
+
+**Decision.** `GET /schema` imports the content config through the dev server's SSR runner and converts
+the collection's schema with zod's `toJSONSchema` (input side, dates as `format: date`, `image()` as a
+string path). Field docs are the JSDoc comments above each field in the config, read with the
+TypeScript parser, since the sites document fields with comments rather than `.describe()`.
+**Why.** The schema the site validates with is the one the form should follow, with no copy to drift.
+
+## 20. Page fields are opted into by the site (2026-10-27)
+
+**Decision.** Any element in the Shell's page with `data-mdx-field="<key>"` (dotted for nested keys)
+edits that frontmatter field in place. In thoughts the essay layout sets it on the title and dek, only
+when rendered for the editor. The frontmatter itself collapses to a one-line bar in the text; a click
+opens the side panel, and `</>` (or a search match inside it) shows the YAML.
+**Why.** Which element shows which field is the site's knowledge, and the attribute keeps it next to
+the markup. The rest of the header (chip, date) is composite and stays as rendered until a reload.

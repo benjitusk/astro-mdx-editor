@@ -57,3 +57,16 @@ reload the editor and lose the cursor. Making the editor page independent of `as
 help: the reload is sent to every page (`path: '*'`), and a second one comes from the SSR module graph.
 Wrapping the channel relies on Vite internals (`server.ws.clients`, `send`), so it's kept in one small
 file.
+
+## 9. Parse Markdown the way MDX does (2026-10-27)
+
+**Decision.** Turn off Lezer's indented-code rule.
+**Why.** MDX has no indented code blocks. Component children are often indented 4 spaces (`<Note>` in
+_judging_), and those are prose, not code.
+
+## 10. Sites load the editor from a sibling checkout (2026-10-27)
+
+**Decision.** Site configs import `../astro-mdx-editor/src/index.ts` when that folder exists, instead of
+depending on it through npm (`file:`).
+**Why.** A `file:` dependency ends up in the lockfile, and `npm ci` on the deploy runner fails when the
+path doesn't exist. The editor is a local, dev-only tool; machines without it should just build the site.

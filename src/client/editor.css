@@ -222,3 +222,128 @@
 .mdx-editor .md-comment {
     color: var(--text-subtle, #888);
 }
+
+/* ---- Palette and cheat sheet ---- */
+.mdx-editor-dialog {
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: min(32rem, calc(100vh - 4rem));
+    margin: 12vh auto auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-strong, #ccc);
+    border-radius: var(--radius-lg, 14px);
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 14px/1.45 var(--font-sans, system-ui, sans-serif);
+    box-shadow: var(--shadow-lift, 0 12px 32px rgb(0 0 0 / 0.2));
+}
+.mdx-editor-dialog::backdrop {
+    background: rgb(0 0 0 / 0.2);
+}
+.mdx-editor-palette input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border, #ddd);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+}
+.mdx-editor-palette ul {
+    max-height: 22rem;
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    list-style: none;
+}
+.mdx-editor-palette li {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.mdx-editor-palette li[aria-selected='true'] {
+    background: var(--accent-subtle, #eee);
+}
+.mdx-editor-palette .group {
+    color: var(--text-subtle, #888);
+    font-size: 12px;
+}
+.mdx-editor-dialog kbd {
+    margin-left: auto;
+    color: var(--text-muted, #666);
+    font: 12px var(--font-sans, system-ui, sans-serif);
+    white-space: nowrap;
+}
+.mdx-editor-cheatsheet {
+    max-height: inherit;
+    padding: 16px 20px 20px;
+    overflow-y: auto;
+}
+.mdx-editor-cheatsheet h2 {
+    margin: 0 0 8px;
+    font: 600 16px var(--font-sans, system-ui, sans-serif);
+}
+.mdx-editor-cheatsheet h3 {
+    margin: 16px 0 6px;
+    color: var(--text-subtle, #888);
+    font: 600 12px var(--font-sans, system-ui, sans-serif);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.mdx-editor-cheatsheet dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 16px;
+    margin: 0;
+}
+.mdx-editor-cheatsheet dd {
+    margin: 0;
+}
+.mdx-editor-cheatsheet .note {
+    margin: 16px 0 0;
+    color: var(--text-muted, #666);
+    font-size: 13px;
+}
+
+/* CodeMirror's find panel, in the site's type. */
+.mdx-editor .cm-panels {
+    border-radius: var(--radius-md, 10px);
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 13px var(--font-sans, system-ui, sans-serif);
+}
+.mdx-editor .cm-panels-top {
+    position: sticky;
+    top: 0;
+    border: 1px solid var(--border, #ddd);
+}
+.mdx-editor .cm-searchMatch {
+    background: color-mix(in srgb, var(--accent, orange) 25%, transparent);
+}
+
+/* ---- ?selftest result panel ---- */
+.mdx-editor-selftest {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 70;
+    max-width: 28rem;
+    padding: 10px 14px;
+    border: 1px solid var(--border-strong, #ccc);
+    border-radius: 10px;
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 12px/1.5 var(--font-sans, system-ui, sans-serif);
+}
+.mdx-editor-selftest[data-result='fail'] {
+    border-color: var(--accent, #b34a31);
+}
+.mdx-editor-selftest strong {
+    display: block;
+    margin-bottom: 4px;
+}

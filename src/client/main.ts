@@ -11,4 +11,9 @@ if (parent) {
     const editor = createEditor(parent, cfg, text);
     Object.assign(window, { mdxEditor: editor });
     editor.view.focus();
+    if (new URLSearchParams(location.search).has('selftest')) {
+        void import('./selftest.ts').then(({ selfTestPanel }) =>
+            document.fonts.ready.then(() => selfTestPanel(editor.view))
+        );
+    }
 }

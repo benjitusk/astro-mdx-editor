@@ -2,6 +2,8 @@
 // /__edit/<collection>/<id>: the editor, inside the site's own Shell (layout + Prose).
 import Shell from 'virtual:mdx-editor/shell';
 import * as globals from 'virtual:mdx-editor/globals';
+// The components entries import, for their CSS (sites without globals).
+import 'virtual:mdx-editor/styles';
 import { callouts, emoji, imagesOn, keymap, loadEntry, pageUrl, token, typography } from 'virtual:mdx-editor/server';
 
 const { collection = '', id = '' } = Astro.params;

@@ -1,5 +1,6 @@
 import type { AstroConfig, AstroIntegration } from 'astro';
 import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { readdirSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,7 @@ import { entryForPath, resolveCollections } from './server/entries.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
+import type { FrameworkRenderer } from './server/render-entry.ts';
 import { createSchemas } from './server/schema.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
 import type { ImageOptions, MdxEditorOptions, ResolvedCollection } from './types.ts';
@@ -39,6 +41,23 @@ function safeReaddir(dir: string): string[] {
     } catch {
         return [];
     }
+}
+
+/** UI framework integrations whose components can appear in MDX, each with a `server.js` renderer. */
+const FRAMEWORKS = ['@astrojs/react', '@astrojs/preact', '@astrojs/vue', '@astrojs/svelte', '@astrojs/solid-js'];
+
+/** The site's framework renderers, resolved from the site (this package doesn't depend on them). */
+function frameworkRenderers(config: AstroConfig, root: string): FrameworkRenderer[] {
+    const require = createRequire(join(root, 'package.json'));
+    return config.integrations
+        .filter((i) => FRAMEWORKS.includes(i.name))
+        .flatMap((i) => {
+            try {
+                return [{ name: i.name, entry: require.resolve(`${i.name}/server.js`) }];
+            } catch {
+                return [];
+            }
+        });
 }
 
 /** A collection's image settings: its own, else the top-level ones, else the defaults. Null when off. */
@@ -104,7 +123,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                     root,
                     collections,
                     images: (name) => imageOptions(options, name),
-                    renderer: createRenderer(server, root),
+                    renderer: createRenderer(server, root, frameworkRenderers(config, root)),
                     schemas: createSchemas(server, root),
                     registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),
                     emoji: () => {

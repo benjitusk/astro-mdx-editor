@@ -9,11 +9,20 @@ import * as globals from 'virtual:mdx-editor/globals';
 
 let container: experimental_AstroContainer | undefined;
 
-export async function render(file: string): Promise<string> {
+/** A UI framework's server renderer (`@astrojs/react/server.js`…), by absolute path. */
+export interface FrameworkRenderer {
+    name: string;
+    entry: string;
+}
+
+export async function render(file: string, frameworks: FrameworkRenderer[] = []): Promise<string> {
     if (!container) {
         container = await experimental_AstroContainer.create();
-        // A fresh container doesn't inherit the site's renderers; MDX content needs this one.
+        // A fresh container doesn't inherit the site's renderers; MDX content needs this one, and
+        // framework components (React…) need theirs. They render to static HTML: nothing hydrates.
         container.addServerRenderer({ name: 'astro:jsx', renderer: mdxRenderer });
+        for (const f of frameworks)
+            container.addServerRenderer({ name: f.name, renderer: (await import(/* @vite-ignore */ f.entry)).default });
     }
     const mod = await import(/* @vite-ignore */ file);
     return container.renderToString(mod.Content ?? mod.default, { props: { components: { ...globals } } });

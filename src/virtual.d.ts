@@ -8,6 +8,8 @@ declare module 'virtual:mdx-editor/globals' {
     export = globals;
 }
 
+declare module 'virtual:mdx-editor/styles' {}
+
 declare module 'virtual:mdx-editor/server' {
     import type { ClientConfig } from './types.ts';
     export const token: string;

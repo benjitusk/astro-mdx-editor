@@ -1,10 +1,14 @@
+import { readFile } from 'node:fs/promises';
 import type { Plugin } from 'vite';
+import { listEntries } from './entries.ts';
+import { importLines } from './render.ts';
 import { DEFAULT_CALLOUT_TYPES } from '../defaults.ts';
 import type { ClientConfig, MdxEditorOptions, ResolvedCollection } from '../types.ts';
 
 const SHELL = 'virtual:mdx-editor/shell';
 const GLOBALS = 'virtual:mdx-editor/globals';
 const SERVER = 'virtual:mdx-editor/server';
+const STYLES = 'virtual:mdx-editor/styles';
 
 interface Context {
     options: MdxEditorOptions;
@@ -19,7 +23,9 @@ interface Context {
  * Virtual modules for the injected editor pages:
  * - `shell`: the site's Shell component;
  * - `globals`: the site's globally available components (imported so their scoped CSS loads);
- * - `server`: the session token and an entry reader, for page frontmatter only.
+ * - `server`: the session token and an entry reader, for page frontmatter only;
+ * - `styles`: imports every component the collections' entries import, so their CSS loads on the
+ *   editor page as `globals` does (for sites whose entries import their components).
  */
 export function editorVitePlugin(ctx: Context): Plugin {
     const ids = new Map([
@@ -30,9 +36,22 @@ export function editorVitePlugin(ctx: Context): Plugin {
     return {
         name: 'astro-mdx-editor',
         resolveId(id) {
-            if (ids.has(id)) return '\0' + id;
+            if (ids.has(id) || id === STYLES) return '\0' + id;
         },
-        load(id) {
+        async load(id) {
+            if (id === '\0' + STYLES) {
+                const files = new Set<string>();
+                for (const entry of await listEntries(ctx.collections)) {
+                    const text = await readFile(entry.path, 'utf8').catch(() => '');
+                    for (const stmt of importLines(text)) {
+                        const spec = /\bfrom\s*(['"])([^'"]+)\1/.exec(stmt)?.[2];
+                        const resolved = spec && (await this.resolve(spec, entry.path));
+                        const file = resolved ? resolved.id.split('?')[0] : '';
+                        if (/\.(astro|[jt]sx|vue|svelte)$/.test(file)) files.add(file);
+                    }
+                }
+                return [...files].map((f) => `import ${JSON.stringify(f)};`).join('\n') || 'export {};';
+            }
             if (id.startsWith('\0')) return ids.get(id.slice(1));
         },
     };

@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ViteDevServer } from 'vite';
 import type { EntryFile } from './entries.ts';
+import type { FrameworkRenderer } from './render-entry.ts';
 
 export type RenderResult = { html: string } | { error: string };
 
@@ -40,7 +41,7 @@ export function absoluteImports(imports: string[], fromDir: string): string[] {
  * never touches the module graph), loaded through Vite's SSR runner and rendered with the Container
  * API. Results are cached by hash.
  */
-export function createRenderer(server: ViteDevServer, root: string) {
+export function createRenderer(server: ViteDevServer, root: string, frameworks: FrameworkRenderer[] = []) {
     const dir = join(root, 'node_modules', '.mdx-editor', 'snippets');
     const cache = new Map<string, Promise<RenderResult>>();
     const renderEntry = fileURLToPath(new URL('./render-entry.ts', import.meta.url));
@@ -55,7 +56,7 @@ export function createRenderer(server: ViteDevServer, root: string) {
         try {
             const runner = server.environments.ssr as unknown as { runner: { import: (id: string) => Promise<any> } };
             const { render } = await runner.runner.import(renderEntry);
-            return { html: await render(file) };
+            return { html: await render(file, frameworks) };
         } catch (e) {
             const err = e as Error & { loc?: { line?: number } };
             return { error: (err.message ?? String(e)).split('\n')[0] };

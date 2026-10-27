@@ -20,9 +20,15 @@
 .mdx-editor .cm-cursor {
     border-left: 2px solid var(--accent, currentColor);
 }
+/* The selection is drawn over the text as a tint, so it stays visible on lines with backgrounds
+   (callout cards, component frames), which would otherwise paint over it. */
+.mdx-editor .cm-selectionLayer {
+    z-index: 1 !important;
+    pointer-events: none;
+}
 .mdx-editor .cm-selectionBackground,
 .mdx-editor .cm-focused .cm-selectionBackground {
-    background: var(--accent-subtle, rgb(0 0 0 / 0.1)) !important;
+    background: color-mix(in srgb, var(--accent, #3b6fd6) 22%, transparent) !important;
 }
 
 /* ---- Editor chrome (not part of the page) ---- */
@@ -129,7 +135,7 @@
 }
 .mdx-editor .md-listmark {
     position: absolute;
-    right: calc(100% - var(--frame-pad, 0px) - var(--md-indent) + 0.35em);
+    right: calc(100% - var(--frame-pad, 0px) - var(--co-inset, 0px) - var(--md-indent) + 0.35em);
     white-space: pre;
     font-variant-numeric: tabular-nums;
 }
@@ -445,7 +451,7 @@
         inset 1px 0 0 var(--frame-edge),
         inset -1px 0 0 var(--frame-edge);
 }
-.mdx-editor .mdx-frame:not(.md-li, .md-bq) {
+.mdx-editor .mdx-frame:not(.md-li, .md-bq, .md-callout) {
     padding-left: var(--frame-pad);
 }
 /* A blockquote's rule moves inside the frame's padding. */
@@ -508,6 +514,164 @@
     white-space: nowrap;
 }
 .mdx-editor .mdx-prop i {
+    color: var(--text-subtle, #888);
+    font-style: normal;
+}
+
+/* ---- Callouts (src/client/callouts.ts) ----
+ * Each line of the quote is a slice of the card: the card is drawn behind the line (::before), with
+ * the top edge on the first line and the bottom edge on the last. The --co-* values are measured from
+ * the site's own render of each type; these are the fallbacks until that arrives. */
+.mdx-editor .md-callout {
+    --co-bg: var(--surface, #f6f6f6);
+    --co-bg-image: none;
+    --co-blend: normal;
+    --co-pt: var(--space-4, 1rem);
+    --co-pr: var(--space-5, 1.25rem);
+    --co-pb: var(--space-4, 1rem);
+    --co-pl: var(--space-5, 1.25rem);
+    --co-bw-t: 1px;
+    --co-bw-r: 1px;
+    --co-bw-b: 1px;
+    --co-bw-l: 1px;
+    --co-bt: 1px solid var(--border, #ddd);
+    --co-br: 1px solid var(--border, #ddd);
+    --co-bb: 1px solid var(--border, #ddd);
+    --co-bl: 1px solid var(--border, #ddd);
+    --co-r-tl: var(--radius-lg, 12px);
+    --co-r-tr: var(--radius-lg, 12px);
+    --co-r-br: var(--radius-lg, 12px);
+    --co-r-bl: var(--radius-lg, 12px);
+    --co-color: inherit;
+    --co-font: inherit;
+    --co-size: inherit;
+    --co-leading: inherit;
+    --co-gap: var(--space-2, 0.5rem);
+    --co-t-color: var(--text-muted, #666);
+    --co-t-font: var(--font-sans, system-ui, sans-serif);
+    --co-t-size: 0.875em;
+    --co-t-weight: 600;
+    --co-t-leading: inherit;
+    --co-t-gap: 0.5em;
+    --co-i-color: currentColor;
+    --co-i-size: 1em;
+    --co-inset: calc(var(--co-bw-l) + var(--co-pl));
+}
+.mdx-editor .cm-line.md-callout {
+    z-index: 0;
+    padding-right: calc(var(--frame-pad, 0px) + var(--co-bw-r) + var(--co-pr));
+    padding-left: calc(var(--frame-pad, 0px) + var(--co-inset));
+    color: var(--co-color);
+    font-family: var(--co-font);
+    font-size: var(--co-size);
+    line-height: var(--co-leading);
+}
+.mdx-editor .cm-line.md-callout.md-li {
+    padding-left: calc(var(--frame-pad, 0px) + var(--co-inset) + var(--md-indent));
+}
+.mdx-editor .cm-line.md-callout::before {
+    content: '';
+    position: absolute;
+    inset: 0 var(--frame-pad, 0px);
+    z-index: -1;
+    border-right: var(--co-br);
+    border-left: var(--co-bl);
+    background-color: var(--co-bg);
+    background-image: var(--co-bg-image);
+    mix-blend-mode: var(--co-blend);
+    pointer-events: none;
+}
+.mdx-editor .cm-line.md-callout-first {
+    padding-top: calc(var(--co-bw-t) + var(--co-pt));
+}
+.mdx-editor .cm-line.md-callout-first::before {
+    border-top: var(--co-bt);
+    border-top-left-radius: var(--co-r-tl);
+    border-top-right-radius: var(--co-r-tr);
+}
+.mdx-editor .cm-line.md-callout-body-first {
+    padding-top: var(--co-gap);
+}
+.mdx-editor .cm-line.md-callout-last {
+    padding-bottom: calc(var(--co-bw-b) + var(--co-pb));
+}
+.mdx-editor .cm-line.md-callout-last::before {
+    border-bottom: var(--co-bb);
+    border-bottom-right-radius: var(--co-r-br);
+    border-bottom-left-radius: var(--co-r-bl);
+}
+.mdx-editor .cm-line.md-callout-title {
+    color: var(--co-t-color);
+    font-family: var(--co-t-font);
+    font-size: var(--co-t-size);
+    font-weight: var(--co-t-weight);
+    line-height: var(--co-t-leading);
+}
+.mdx-editor .md-callout-icon {
+    display: inline-block;
+    width: var(--co-i-size);
+    height: var(--co-i-size);
+    margin-right: var(--co-t-gap);
+    color: var(--co-i-color);
+    vertical-align: middle;
+    cursor: pointer;
+}
+.mdx-editor .md-callout-icon:empty {
+    border-radius: 50%;
+    background: currentColor;
+    transform: scale(0.5);
+}
+.mdx-editor .md-callout-icon svg,
+.mdx-editor-palette .md-callout-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.mdx-editor-palette li .md-callout-icon {
+    flex: none;
+    width: 1em;
+    height: 1em;
+    align-self: center;
+}
+/* Measured off-screen; never seen. */
+.mdx-callout-probe {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    visibility: hidden;
+    pointer-events: none;
+    contain: layout;
+}
+
+/* ---- Emoji (src/client/emoji.ts) ---- */
+.mdx-editor .md-emoji {
+    font-style: normal;
+}
+
+/* Completion list (emoji), in the site's type. */
+.mdx-editor .cm-tooltip.cm-tooltip-autocomplete {
+    overflow: hidden;
+    border: 1px solid var(--border-strong, #ccc);
+    border-radius: var(--radius-md, 10px);
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font: 14px/1.4 var(--font-sans, system-ui, sans-serif);
+    box-shadow: var(--shadow-lift, 0 6px 20px rgb(0 0 0 / 0.15));
+}
+.mdx-editor .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
+    max-height: 16em;
+    font-family: inherit;
+}
+.mdx-editor .cm-tooltip-autocomplete > ul > li {
+    padding: 3px 10px;
+}
+.mdx-editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
+    background: var(--accent-subtle, #eee);
+    color: inherit;
+}
+.mdx-editor .cm-tooltip-autocomplete .cm-completionDetail {
+    margin-left: 0.75em;
     color: var(--text-subtle, #888);
     font-style: normal;
 }

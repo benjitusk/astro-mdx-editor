@@ -4,6 +4,7 @@ import { readdirSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountApi } from './server/api.ts';
+import { loadEmojiTable, type EmojiTable } from './server/emoji.ts';
 import { entryForPath, resolveCollections } from './server/entries.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRenderer } from './server/render.ts';
@@ -88,7 +89,16 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
             'astro:server:setup': ({ server }) => {
                 if (!active) return;
                 const root = fileURLToPath(config.root);
-                mountApi(server, { token, collections, renderer: createRenderer(server, root) });
+                let emoji: Promise<EmojiTable | null> | undefined;
+                mountApi(server, {
+                    token,
+                    collections,
+                    renderer: createRenderer(server, root),
+                    emoji: () => {
+                        if (options.emoji === false) return Promise.resolve(null);
+                        return (emoji ??= loadEmojiTable(root, options.emoji ?? {}));
+                    },
+                });
                 // Astro rewrites .astro/data-store.json after every content change; that is not code.
                 const generated = join(root, '.astro') + sep;
                 routeFullReloads(

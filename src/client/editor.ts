@@ -4,8 +4,10 @@ import { EditorState, type Extension } from '@codemirror/state';
 import { drawSelection, EditorView } from '@codemirror/view';
 import type { ClientConfig } from '../types.ts';
 import { createApi } from './api.ts';
+import { calloutClicks, calloutLooks, calloutTypes, loadCalloutLooks } from './callouts.ts';
 import { commandKeymap, commandTable } from './commands.ts';
 import { componentExtensions } from './components.ts';
+import { emojiCompletion, emojiTable, loadEmoji } from './emoji.ts';
 import { jsxField } from './jsx.ts';
 import { livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
@@ -25,6 +27,8 @@ export function stateExtensions(text: string): Extension[] {
         markdown({ base: markdownLanguage, extensions: { remove: ['IndentedCode'] } }),
         metaField,
         jsxField,
+        calloutLooks,
+        emojiTable,
         livePreviewExtensions,
         history(),
     ];
@@ -45,6 +49,9 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
             extensions: [
                 stateExtensions(text),
                 componentExtensions(api),
+                calloutTypes.of(cfg.callouts),
+                calloutClicks,
+                emojiCompletion,
                 commandKeymap(commands, cfg.keymap),
                 wrapOnType,
                 typography(cfg.typography),
@@ -58,5 +65,7 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
     });
     restoreSnapshot(view, cfg);
     handleReloads(view, saver, cfg);
+    void loadCalloutLooks(view, api);
+    if (cfg.emoji) void loadEmoji(view, cfg.token);
     return { view, saver, commands };
 }

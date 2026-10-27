@@ -20,6 +20,7 @@ import {
     toggleList,
     toggleQuote,
 } from './formatting.ts';
+import { pickCallout } from './callouts.ts';
 import { componentCommands } from './components.ts';
 
 export interface Command {
@@ -60,6 +61,7 @@ export function commandTable(app: AppActions): Command[] {
         { id: 'block.ol', label: 'Numbered list', group: 'Blocks', key: 'Mod-Shift-7', run: toggleList(true) },
         { id: 'block.ul', label: 'Bulleted list', group: 'Blocks', key: 'Mod-Shift-8', run: toggleList(false) },
         { id: 'block.quote', label: 'Blockquote', group: 'Blocks', key: 'Mod-Shift-.', run: toggleQuote },
+        { id: 'block.callout', label: 'Callout…', group: 'Blocks', key: 'Mod-Shift-c', run: pickCallout },
 
         { id: 'list.indent', label: 'Indent list item', group: 'Lists and lines', key: 'Tab', run: indentListItem(1) },
         {

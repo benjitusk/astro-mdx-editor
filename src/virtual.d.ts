@@ -13,6 +13,8 @@ declare module 'virtual:mdx-editor/server' {
     export const token: string;
     export const typography: ClientConfig['typography'];
     export const keymap: Record<string, string>;
+    export const callouts: string[];
+    export const emoji: boolean;
     export function loadEntry(
         collection: string,
         id: string

@@ -25,6 +25,7 @@
         "astro": "^7.0.0"
     },
     "dependencies": {
+        "@codemirror/autocomplete": "^6.20.4",
         "@codemirror/commands": "^6.8.1",
         "@codemirror/lang-markdown": "^6.3.4",
         "@codemirror/language": "^6.11.3",

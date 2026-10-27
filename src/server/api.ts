@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { sep } from 'node:path';
 import type { ViteDevServer } from 'vite';
 import type { ResolvedCollection } from '../types.ts';
+import type { EmojiTable } from './emoji.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
 import type { createRenderer } from './render.ts';
@@ -17,6 +18,8 @@ interface Context {
     token: string;
     collections: ResolvedCollection[];
     renderer: ReturnType<typeof createRenderer>;
+    /** The site's emoji shortcodes, or null when emoji are off or the site has no satteri-emoji. */
+    emoji: () => Promise<EmojiTable | null>;
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -71,6 +74,10 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
                     200,
                     entries.map(({ collection, id }) => ({ collection, id }))
                 );
+            }
+            if (url.pathname === '/emoji' && req.method === 'GET') {
+                const table = await ctx.emoji();
+                return table ? send(res, 200, table) : send(res, 404, { error: 'no emoji' });
             }
             if (url.pathname === '/render' && req.method === 'POST') {
                 const body = JSON.parse(await readBody(req)) as { collection: string; id: string; source: string };

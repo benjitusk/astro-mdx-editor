@@ -1,4 +1,5 @@
 import type { Plugin } from 'vite';
+import { DEFAULT_CALLOUT_TYPES } from '../defaults.ts';
 import type { ClientConfig, MdxEditorOptions, ResolvedCollection } from '../types.ts';
 
 const SHELL = 'virtual:mdx-editor/shell';
@@ -52,6 +53,8 @@ const options = globalThis[Symbol.for('astro-mdx-editor')]?.options;
 export const token = ${JSON.stringify(ctx.token)};
 export const typography = ${JSON.stringify(typography)};
 export const keymap = ${JSON.stringify(ctx.options.keymap ?? {})};
+export const callouts = ${JSON.stringify(ctx.options.callouts ?? DEFAULT_CALLOUT_TYPES)};
+export const emoji = ${JSON.stringify(ctx.options.emoji !== false)};
 export async function loadEntry(collection, id) {
     const file = await findEntry(collections, collection, id);
     return file ? { ...file, ...(await readEntry(file)) } : null;

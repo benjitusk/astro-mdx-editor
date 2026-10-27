@@ -11,6 +11,8 @@ import {
 } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import type { SyntaxNode } from '@lezer/common';
+import { calloutLooks, calloutMarkDecoration, calloutOf } from './callouts.ts';
+import { emojiDecorations, emojiTable } from './emoji.ts';
 import { metaField, type Meta } from './meta.ts';
 
 /**
@@ -22,6 +24,8 @@ import { metaField, type Meta } from './meta.ts';
  *   space; revealed, they hang in the left margin. Text never moves when the cursor arrives, so clicks
  *   land where the user aimed (see docs/DECISIONS.md, 5).
  * - Line classes reproduce Prose's block spacing, which can't reach through CodeMirror's DOM.
+ * - Callout markers and emoji shortcodes are atomic widgets that never expand under the cursor
+ *   (src/client/callouts.ts, src/client/emoji.ts).
  */
 
 /** Ranges hidden at the start of a line; a click landing on one is moved past it (see leanToContent). */
@@ -34,6 +38,8 @@ export const prefixSource = Facet.define<(state: EditorState) => RangeSet<Prefix
 export interface Preview {
     decorations: DecorationSet;
     prefixes: RangeSet<Prefix>;
+    /** Widgets the cursor steps over whole (callout icons, emoji). */
+    atomic: DecorationSet;
 }
 
 const hidden = Decoration.replace({});
@@ -71,6 +77,7 @@ function build(state: EditorState): Preview {
     const tree = ensureSyntaxTree(state, doc.length, 200) ?? syntaxTree(state);
     const out: Range<Decoration>[] = [];
     const prefixes: Range<Prefix>[] = [];
+    const atomic: Range<Decoration>[] = [];
     const ranges = state.selection.ranges;
     const touches = (from: number, to: number) => ranges.some((r) => r.from <= to && r.to >= from);
     const lineTouched = (n: number) => {
@@ -104,6 +111,7 @@ function build(state: EditorState): Preview {
         blockLines.set(n, list);
     };
     const lineStyles = new Map<number, string>();
+    const lineAttrs = new Map<number, Record<string, string>>();
 
     tree.iterate({
         enter: (ref) => {
@@ -131,8 +139,25 @@ function build(state: EditorState): Preview {
                 const first = doc.lineAt(node.from).number;
                 const last = doc.lineAt(node.to).number;
                 const active = touches(node.from, node.to);
+                const callout = calloutOf(state, node);
                 for (let n = first; n <= last; n++) {
-                    addLineClass(n, `md-bq${n === first ? ' md-bq-first' : ''}${n === last ? ' md-bq-last' : ''}`);
+                    if (!callout) {
+                        addLineClass(n, `md-bq${n === first ? ' md-bq-first' : ''}${n === last ? ' md-bq-last' : ''}`);
+                        continue;
+                    }
+                    // The quote's lines are the card's lines: title, then body.
+                    let cls = 'md-callout';
+                    if (n === first) cls += ' md-callout-first md-callout-title';
+                    if (n === first + 1) cls += ' md-callout-body-first';
+                    if (n === last) cls += ' md-callout-last';
+                    addLineClass(n, cls);
+                    lineAttrs.set(n, { 'data-callout': callout.type });
+                }
+                if (callout) {
+                    const icon = calloutMarkDecoration(state, callout);
+                    out.push(icon.range(callout.from, callout.to));
+                    atomic.push(icon.range(callout.from, callout.to));
+                    prefixes.push(prefix.range(callout.from, callout.to));
                 }
                 for (const qm of childrenNamed(node, 'QuoteMark', true)) {
                     const after = doc.sliceString(qm.to, qm.to + 1) === ' ' ? qm.to + 1 : qm.to;
@@ -249,6 +274,14 @@ function build(state: EditorState): Preview {
         },
     });
 
+    // Emoji, everywhere but frontmatter and imports.
+    let textFrom = 0;
+    for (const span of metaSpans(meta).toSorted((a, b) => a.from - b.from)) {
+        emojiDecorations(state, textFrom, span.from, out, atomic);
+        textFrom = Math.max(textFrom, span.to);
+    }
+    emojiDecorations(state, textFrom, doc.length, out, atomic);
+
     // Blank lines: Prose's gaps between blocks.
     for (let n = 1; n <= doc.lines; n++) {
         const l = doc.line(n);
@@ -264,12 +297,14 @@ function build(state: EditorState): Preview {
 
     for (const [n, classes] of blockLines) {
         const style = lineStyles.get(n);
-        out.push(line(classes.join(' '), style ? { style } : undefined).range(doc.line(n).from));
+        const attributes = { ...lineAttrs.get(n), ...(style ? { style } : {}) };
+        out.push(line(classes.join(' '), attributes).range(doc.line(n).from));
     }
 
     return {
         decorations: Decoration.set(out, true),
         prefixes: RangeSet.of(prefixes, true),
+        atomic: Decoration.set(atomic, true),
     };
 }
 
@@ -320,7 +355,13 @@ function jsxTokens(doc: Text, from: number, to: number, out: Range<Decoration>[]
 export const livePreview = StateField.define<Preview>({
     create: build,
     update: (value, tr) =>
-        tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState) ? build(tr.state) : value,
+        tr.docChanged ||
+        tr.selection ||
+        syntaxTree(tr.state) !== syntaxTree(tr.startState) ||
+        tr.state.field(calloutLooks, false) !== tr.startState.field(calloutLooks, false) ||
+        tr.state.field(emojiTable, false) !== tr.startState.field(emojiTable, false)
+            ? build(tr.state)
+            : value,
     provide: (f) => EditorView.decorations.from(f, (v) => v.decorations),
 });
 
@@ -335,10 +376,17 @@ export const leanToContent = EditorState.transactionFilter.of((tr) => {
     const ranges = tr.selection.ranges.map((r) => {
         if (!r.empty) return r;
         let pos = r.head;
-        for (const prefixes of sources) {
-            prefixes.between(pos, pos, (from, to) => {
-                if (pos >= from && pos < to) pos = to;
-            });
+        // Prefixes can be back to back (`> ` then a callout's `[!type] `): keep going until clear.
+        for (let again = true; again;) {
+            again = false;
+            for (const prefixes of sources) {
+                prefixes.between(pos, pos, (from, to) => {
+                    if (pos >= from && pos < to) {
+                        pos = to;
+                        again = true;
+                    }
+                });
+            }
         }
         if (pos === r.head) return r;
         moved = true;
@@ -349,6 +397,7 @@ export const leanToContent = EditorState.transactionFilter.of((tr) => {
 
 export const livePreviewExtensions = [
     livePreview,
+    EditorView.atomicRanges.of((view) => view.state.field(livePreview).atomic),
     prefixSource.of((state) => state.field(livePreview).prefixes),
     leanToContent,
 ];

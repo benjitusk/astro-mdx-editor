@@ -14,6 +14,13 @@ export interface TypographyOptions {
     ellipsis?: boolean;
 }
 
+export interface EmojiOptions {
+    /** satteri-emoji's `shortcodes` catalogs, in the same order. Default: `['cldr']`, as satteri-emoji. */
+    shortcodes?: string[];
+    /** Label language, as satteri-emoji's `locale`. Default: `en`. */
+    locale?: string;
+}
+
 export interface MdxEditorOptions {
     /** An `.astro` component that renders `<slot/>` inside the site's layout and Prose. */
     shell: string;
@@ -23,6 +30,14 @@ export interface MdxEditorOptions {
     typography?: TypographyOptions;
     /** Key overrides by command id, e.g. `{ 'format.bold': 'Mod-Shift-b' }`. */
     keymap?: Record<string, string>;
+    /**
+     * Callout types (`> [!type]`) the editor offers, including aliases. Default: satteri-callouts'
+     * Obsidian set. Each is rendered once by the site to get its look; types the site doesn't render
+     * as callouts stay plain quotes.
+     */
+    callouts?: string[];
+    /** Match the site's satteri-emoji setup, so `:shortcode:` previews and completes; `false` turns it off. */
+    emoji?: EmojiOptions | false;
 }
 
 /** A collection with its folder resolved to an absolute path. */
@@ -40,4 +55,7 @@ export interface ClientConfig {
     pageUrl: string | null;
     typography: Required<TypographyOptions>;
     keymap: Record<string, string>;
+    callouts: string[];
+    /** Whether `GET /emoji` serves a shortcode table. */
+    emoji: boolean;
 }

@@ -23,3 +23,18 @@
 - Gates: `npm run roundtrip` (byte-for-byte over a site's entries) and `?selftest` (click accuracy in the
   real page).
 - Unit tests (vitest + jsdom) for formatting, typography, live preview, meta detection and entries.
+- Components, mode A:
+    - with the cursor elsewhere, an element shows its real render from the site's MDX pipeline
+      (Container API);
+    - with the cursor in a block's children, it shows a frame with a props chip and live-preview
+      children, indented children shown dedented, and nested components framed or rendered by the
+      same rules;
+    - one-line elements (`<Pull>…</Pull>`) edit inline with a chip;
+    - `</>` / Cmd-Enter and a cursor in a tag show raw MDX; Escape leaves a component.
+- Clicking a word in a render enters the component with the caret right before that word in the
+  source.
+- Arrow keys step into and out of components. Backspace/Delete can't merge children into their tags.
+- Renders are cached, and a changed block shows its last render, dimmed, until the new one arrives.
+  Render errors show on the block.
+- The click test covers rendered components (482/482 on _judging_ at desktop width, 483/483 at phone
+  width, 17 of them clicks inside renders).

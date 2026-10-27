@@ -70,3 +70,27 @@ _judging_), and those are prose, not code.
 depending on it through npm (`file:`).
 **Why.** A `file:` dependency ends up in the lockfile, and `npm ci` on the deploy runner fails when the
 path doesn't exist. The editor is a local, dev-only tool; machines without it should just build the site.
+
+## 11. A hand-written component scanner, not a full MDX parse (2026-10-27)
+
+**Decision.** `src/client/jsx.ts` scans for capitalised JSX elements synchronously on every change,
+instead of running micromark + mdast-util-mdx in a worker as planned.
+**Why.** Decorations need element boundaries on every keystroke and cursor move, with no latency.
+Mid-typing MDX is often invalid, and a real MDX parse fails as a whole, while the scanner just leaves
+the unfinished tag raw. Rendering still goes through the real MDX pipeline.
+
+## 12. No vertical margins on block widgets (2026-10-27)
+
+**Decision.** Frame headers and footers and rendered blocks use padding, never vertical margins.
+Rendered blocks are `display: flow-root`, so the component's own margins stay inside.
+**Why.** CodeMirror measures widgets without their margins, and its height map then disagrees with
+the page. The click test caught this: two nested frames at phone width put clicks 16px, a whole line,
+off.
+
+## 13. Raw mode is temporary, and tags edit raw (2026-10-27)
+
+**Decision.** `</>` / Cmd-Enter shows an element as raw MDX only until the cursor leaves it. A cursor
+inside a tag (from search, undo or a click on the chip) also shows that element raw. Self-closing and
+empty elements always edit raw.
+**Why.** That matches "the cursor elsewhere shows the render" without a mode to remember. It also lets
+props be edited directly until the props editor lands in phase 4.

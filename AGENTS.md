@@ -11,6 +11,10 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) first, and record new design choices in
 - **Every API endpoint is token- and origin-checked.**
 - **TypeScript is erasable-only** (`erasableSyntaxOnly`): Node runs the integration directly. Use `.ts`
   extensions in relative imports.
+- **Block widgets get no vertical margins** (see docs/DECISIONS.md, 12): CodeMirror can't see them,
+  and clicks below land on the wrong line.
+- **Scripted edits must fail loudly.** When changing files with a script, assert each replacement
+  matched. Prettier reflows lines and tables, so exact-match edits can silently do nothing.
 - **Match the house style:** Prettier config in `.prettierrc` (4 spaces, single quotes, width 120).
 
 ## Checking changes

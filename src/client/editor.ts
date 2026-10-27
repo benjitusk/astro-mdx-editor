@@ -5,6 +5,8 @@ import { drawSelection, EditorView } from '@codemirror/view';
 import type { ClientConfig } from '../types.ts';
 import { createApi } from './api.ts';
 import { commandKeymap, commandTable } from './commands.ts';
+import { componentExtensions } from './components.ts';
+import { jsxField } from './jsx.ts';
 import { livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
 import { openCheatsheet, openPalette } from './palette.ts';
@@ -22,6 +24,7 @@ export function stateExtensions(text: string): Extension[] {
         // MDX has no indented code blocks (indentation inside components is just indentation).
         markdown({ base: markdownLanguage, extensions: { remove: ['IndentedCode'] } }),
         metaField,
+        jsxField,
         livePreviewExtensions,
         history(),
     ];
@@ -41,6 +44,7 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
             doc: text,
             extensions: [
                 stateExtensions(text),
+                componentExtensions(api),
                 commandKeymap(commands, cfg.keymap),
                 wrapOnType,
                 typography(cfg.typography),

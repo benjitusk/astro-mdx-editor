@@ -20,6 +20,16 @@ export function createApi(cfg: ClientConfig) {
             if (!r.ok) throw new Error(`load failed: ${r.status}`);
             return r.json();
         },
+        /** The element's MDX rendered by the site's pipeline (see src/server/render.ts). */
+        async render(source: string): Promise<{ html?: string; error?: string }> {
+            const r = await fetch(`${API_BASE}/render`, {
+                method: 'POST',
+                headers: { ...headers, 'content-type': 'application/json' },
+                body: JSON.stringify({ collection: cfg.collection, id: cfg.id, source }),
+            });
+            if (!r.ok) throw new Error(`render failed: ${r.status}`);
+            return r.json();
+        },
         /** Resolves to the new hash, or to the file's current contents when it changed underneath us. */
         async save(
             text: string,

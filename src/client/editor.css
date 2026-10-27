@@ -115,21 +115,21 @@
 
 /* Blockquotes, as Prose draws them. */
 .mdx-editor .md-bq {
-    padding-left: var(--space-5, 1.25rem);
+    padding-left: calc(var(--frame-pad, 0px) + var(--space-5, 1.25rem));
     border-left: 3px solid var(--border-strong, #ccc);
     color: var(--text-muted, #666);
 }
 
 /* Lists: hanging markers at the item's indent. */
 .mdx-editor .md-li {
-    padding-left: var(--md-indent);
+    padding-left: calc(var(--frame-pad, 0px) + var(--md-indent));
 }
 .mdx-editor .md-li-gap {
     padding-top: var(--space-2, 0.5rem);
 }
 .mdx-editor .md-listmark {
     position: absolute;
-    right: calc(100% - var(--md-indent) + 0.35em);
+    right: calc(100% - var(--frame-pad, 0px) - var(--md-indent) + 0.35em);
     white-space: pre;
     font-variant-numeric: tabular-nums;
 }
@@ -346,4 +346,168 @@
 .mdx-editor-selftest strong {
     display: block;
     margin-bottom: 4px;
+}
+
+/* ---- Components, mode A (src/client/components.ts) ----
+ * Block widgets must never have vertical margins: CodeMirror measures widgets without them, and the
+ * difference shifts every click below the widget onto the wrong line. */
+.mdx-editor {
+    --frame-unit: 16px;
+    --frame-bg: var(--mdx-frame-bg, color-mix(in srgb, var(--surface, #fff) 75%, transparent));
+    --frame-edge: var(--border, #ddd);
+}
+
+/* Rendered: the real component, from the site's MDX pipeline. */
+.mdx-editor .mdx-render {
+    position: relative;
+    /* Contain the component's own margins, so CodeMirror measures the whole block. */
+    display: flow-root;
+    /* Rendered HTML lays out as on the page, not as CodeMirror's pre-wrapped text. */
+    white-space: normal;
+    border-radius: var(--radius-md, 10px);
+    outline: 1px solid transparent;
+    outline-offset: 4px;
+    cursor: text;
+    transition: outline-color var(--duration-fast, 120ms);
+}
+.mdx-editor .mdx-render:hover {
+    outline-color: var(--border-strong, #ccc);
+}
+.mdx-editor .mdx-render-inline {
+    display: inline;
+    outline-offset: 1px;
+}
+.mdx-editor .mdx-render.mdx-in-frame {
+    --frame-pad: calc(var(--frame-depth) * var(--frame-unit));
+    padding-inline: var(--frame-pad);
+    border-radius: 0;
+    background-color: var(--frame-bg);
+    box-shadow:
+        inset 1px 0 0 var(--frame-edge),
+        inset -1px 0 0 var(--frame-edge);
+}
+.mdx-editor .mdx-stale {
+    opacity: 0.75;
+}
+.mdx-editor .mdx-pending {
+    display: block;
+    color: var(--text-subtle, #888);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.8em;
+    white-space: pre-wrap;
+}
+.mdx-editor .mdx-render-inline .mdx-pending {
+    display: inline;
+}
+.mdx-editor .mdx-error {
+    outline: 1px dashed var(--accent, #b34a31);
+}
+.mdx-editor .mdx-error-badge {
+    display: block;
+    margin-top: 4px;
+    color: var(--accent, #b34a31);
+    font: 12px/1.4 var(--font-sans, system-ui, sans-serif);
+}
+.mdx-editor .mdx-raw-toggle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 2;
+    padding: 1px 7px;
+    border: 1px solid var(--border-strong, #ccc);
+    border-radius: 6px;
+    background: var(--surface, #fff);
+    color: var(--text-muted, #666);
+    font: 500 11px/1.5 var(--font-mono, ui-monospace, monospace);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--duration-fast, 120ms);
+}
+.mdx-editor .mdx-render:hover .mdx-raw-toggle,
+.mdx-editor .mdx-frame-top .mdx-raw-toggle {
+    opacity: 1;
+}
+.mdx-editor .mdx-raw-toggle:hover {
+    border-color: var(--accent, #b34a31);
+    color: var(--accent, #b34a31);
+}
+
+/* Frame: the children of the component the cursor is in, as editable text. */
+.mdx-editor .mdx-frame,
+.mdx-editor .mdx-frame-top,
+.mdx-editor .mdx-frame-bottom {
+    --frame-pad: calc(var(--frame-depth) * var(--frame-unit));
+    background-color: var(--frame-bg);
+}
+.mdx-editor .mdx-frame {
+    padding-right: var(--frame-pad);
+    box-shadow:
+        inset 1px 0 0 var(--frame-edge),
+        inset -1px 0 0 var(--frame-edge);
+}
+.mdx-editor .mdx-frame:not(.md-li, .md-bq) {
+    padding-left: var(--frame-pad);
+}
+/* A blockquote's rule moves inside the frame's padding. */
+.mdx-editor .mdx-frame.md-bq {
+    border-left: 0;
+    padding-left: calc(var(--frame-pad) + 3px + var(--space-5, 1.25rem));
+    background-image: linear-gradient(var(--border-strong, #ccc), var(--border-strong, #ccc));
+    background-repeat: no-repeat;
+    background-position: var(--frame-pad) 0;
+    background-size: 3px 100%;
+}
+.mdx-editor .mdx-frame-top {
+    position: relative;
+    padding: 8px var(--frame-pad) 6px;
+    border: 1px solid var(--frame-edge);
+    border-bottom: 0;
+    border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
+    line-height: 1.4;
+}
+.mdx-editor .mdx-frame-bottom {
+    height: 10px;
+    border: 1px solid var(--frame-edge);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-md, 10px) var(--radius-md, 10px);
+}
+.mdx-editor .mdx-frame-single {
+    padding-block: 2px;
+    border-radius: var(--radius-md, 10px);
+    box-shadow: inset 0 0 0 1px var(--frame-edge);
+}
+
+/* The props chip: the component's name and props, standing in for its tags. */
+.mdx-editor .mdx-chip {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    align-items: center;
+    margin-right: 8px;
+    vertical-align: 0.1em;
+    font: 12px/1.4 var(--font-sans, system-ui, sans-serif);
+    font-style: normal;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+.mdx-editor .mdx-chip b {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--accent, #b34a31);
+    color: var(--on-accent, #fff);
+    font-weight: 600;
+}
+.mdx-editor .mdx-prop {
+    max-width: 22em;
+    overflow: hidden;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--accent-subtle, #f3ddd2);
+    color: var(--accent-hover, #943b26);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mdx-editor .mdx-prop i {
+    color: var(--text-subtle, #888);
+    font-style: normal;
 }

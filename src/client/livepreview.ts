@@ -2,6 +2,7 @@ import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import {
     EditorSelection,
     EditorState,
+    Facet,
     RangeSet,
     RangeValue,
     StateField,
@@ -24,8 +25,11 @@ import { metaField, type Meta } from './meta.ts';
  */
 
 /** Ranges hidden at the start of a line; a click landing on one is moved past it (see leanToContent). */
-class Prefix extends RangeValue {}
-const prefix = new Prefix();
+export class Prefix extends RangeValue {}
+export const prefix = new Prefix();
+
+/** Sources of prefix ranges (live preview, component frames). */
+export const prefixSource = Facet.define<(state: EditorState) => RangeSet<Prefix>>();
 
 export interface Preview {
     decorations: DecorationSet;
@@ -190,11 +194,15 @@ function build(state: EditorState): Preview {
             }
 
             if (name === 'HTMLBlock') {
+                // Lezer runs an HTML block on to the next blank line, but in MDX the text after a
+                // component's opening tag is Markdown: only lines that are tags get the raw style.
                 const first = doc.lineAt(node.from).number;
                 const last = doc.lineAt(node.to).number;
                 for (let n = first; n <= last; n++) {
+                    const l = doc.line(n);
+                    if (!/^\s*</.test(l.text)) continue;
                     addLineClass(n, 'md-jsx');
-                    jsxTokens(doc, doc.line(n).from, doc.line(n).to, out);
+                    jsxTokens(doc, l.from, l.to, out);
                 }
                 return false;
             }
@@ -322,14 +330,16 @@ export const livePreview = StateField.define<Preview>({
  */
 export const leanToContent = EditorState.transactionFilter.of((tr) => {
     if (!tr.selection || tr.docChanged || !tr.isUserEvent('select.pointer')) return tr;
-    const { prefixes } = tr.startState.field(livePreview);
+    const sources = tr.startState.facet(prefixSource).map((f) => f(tr.startState));
     let moved = false;
     const ranges = tr.selection.ranges.map((r) => {
         if (!r.empty) return r;
         let pos = r.head;
-        prefixes.between(pos, pos, (from, to) => {
-            if (pos >= from && pos < to) pos = to;
-        });
+        for (const prefixes of sources) {
+            prefixes.between(pos, pos, (from, to) => {
+                if (pos >= from && pos < to) pos = to;
+            });
+        }
         if (pos === r.head) return r;
         moved = true;
         return EditorSelection.cursor(pos);
@@ -337,4 +347,8 @@ export const leanToContent = EditorState.transactionFilter.of((tr) => {
     return moved ? [tr, { selection: EditorSelection.create(ranges, tr.selection.mainIndex), sequential: true }] : tr;
 });
 
-export const livePreviewExtensions = [livePreview, leanToContent];
+export const livePreviewExtensions = [
+    livePreview,
+    prefixSource.of((state) => state.field(livePreview).prefixes),
+    leanToContent,
+];

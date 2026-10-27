@@ -1,5 +1,7 @@
 import { EditorView } from '@codemirror/view';
 import { h } from './dom.ts';
+import { blockRange, renderedAt } from './components.ts';
+import { allElements, jsxField } from './jsx.ts';
 import { livePreview } from './livepreview.ts';
 
 /**
@@ -92,6 +94,8 @@ export async function runSelfTest(view: EditorView, onProgress?: (done: number, 
             if (state === 'cursor on line' && anchor === s.pos) continue;
             view.dispatch({ selection: { anchor }, effects: EditorView.scrollIntoView(s.pos, { y: 'center' }) });
             await frame();
+            // Text inside a rendered component isn't on screen as text; renderedClicks covers it.
+            if (renderedAt(view.state, s.pos)) continue;
             // coordsAtPos gives caret positions; the character spans from its own to the next one's.
             const rect = view.coordsAtPos(s.pos, 1);
             const next = view.coordsAtPos(s.pos + 1, -1);
@@ -127,8 +131,88 @@ export async function runSelfTest(view: EditorView, onProgress?: (done: number, 
         }
         onProgress?.(i + 1, cases.length);
     }
+    const rendered = await renderedClicks(view, away);
+    checks += rendered.checks;
+    failures.push(...rendered.failures);
     view.dispatch({ selection: initial });
+    return { checks, failures, renderedChecks: rendered.checks };
+}
+
+/**
+ * Clicking a word in a rendered component should enter it with the caret right before that word in
+ * the source. Words are picked that occur once in the element's source and aren't in its tags.
+ */
+async function renderedClicks(view: EditorView, away: (line: number) => number) {
+    const failures: Failure[] = [];
+    let checks = 0;
+    const elements = [...allElements(view.state.field(jsxField))].filter(
+        (e) => e.kind === 'block' || e.kind === 'line'
+    );
+    for (const el of elements) {
+        const line = view.state.doc.lineAt(el.from).number;
+        view.dispatch({
+            selection: { anchor: away(line) },
+            effects: EditorView.scrollIntoView(el.from, { y: 'center' }),
+        });
+        await frame();
+        await frame();
+        const { from } = blockRange(view.state, el);
+        const dom = [...view.contentDOM.querySelectorAll<HTMLElement>('.mdx-render')].find(
+            (d) => view.posAtDOM(d) === from
+        );
+        if (!dom || dom.querySelector('.mdx-pending')) continue;
+        const source = view.state.sliceDoc(el.from, el.to);
+        const words: { node: Text; offset: number; word: string }[] = [];
+        const walker = document.createTreeWalker(dom.querySelector('.mdx-html') ?? dom, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode() as Text | null; n && words.length < 3; n = walker.nextNode() as Text | null) {
+            for (const m of n.data.matchAll(/[A-Za-z]{5,}/g)) {
+                const at = source.indexOf(m[0]);
+                const inChildren = at >= el.innerFrom - el.from && at < el.innerTo - el.from;
+                if (at >= 0 && source.indexOf(m[0], at + 1) < 0 && inChildren && !words.some((w) => w.word === m[0])) {
+                    words.push({ node: n, offset: m.index!, word: m[0] });
+                    break;
+                }
+            }
+        }
+        for (const w of words) {
+            view.dispatch({
+                selection: { anchor: away(line) },
+                effects: EditorView.scrollIntoView(el.from, { y: 'center' }),
+            });
+            await frame();
+            const target = [...view.contentDOM.querySelectorAll<HTMLElement>('.mdx-render')].find(
+                (d) => view.posAtDOM(d) === from
+            );
+            const node = target && findText(target, w.word);
+            if (!node) continue;
+            const range = document.createRange();
+            range.setStart(node.node, node.offset);
+            range.setEnd(node.node, node.offset + 1);
+            const r = range.getBoundingClientRect();
+            const got = await click(view, r.left + 1, (r.top + r.bottom) / 2);
+            const expected = el.from + source.indexOf(w.word);
+            checks++;
+            if (got !== expected) {
+                failures.push({
+                    case: `rendered ${el.name}: “${w.word}”`,
+                    line,
+                    expected,
+                    got,
+                    context: view.state.sliceDoc(Math.max(0, got - 12), got + 12),
+                });
+            }
+        }
+    }
     return { checks, failures };
+}
+
+function findText(root: HTMLElement, word: string) {
+    const walker = document.createTreeWalker(root.querySelector('.mdx-html') ?? root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode() as Text | null; n; n = walker.nextNode() as Text | null) {
+        const i = n.data.search(new RegExp(`\\b${word}\\b`));
+        if (i >= 0) return { node: n, offset: i };
+    }
+    return null;
 }
 
 /** Run the test with a small progress/result panel, and expose the result as `window.mdxEditorSelfTest`. */
@@ -140,7 +224,12 @@ export async function selfTestPanel(view: EditorView) {
     });
     Object.assign(window, { mdxEditorSelfTest: result });
     panel.replaceChildren(
-        h('strong', {}, `Click test: ${result.checks - result.failures.length}/${result.checks} landed exactly`),
+        h(
+            'strong',
+            {},
+            `Click test: ${result.checks - result.failures.length}/${result.checks} landed exactly ` +
+                `(${result.renderedChecks} in rendered components)`
+        ),
         ...result.failures
             .slice(0, 12)
             .map((f) =>

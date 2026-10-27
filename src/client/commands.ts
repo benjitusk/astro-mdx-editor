@@ -20,6 +20,7 @@ import {
     toggleList,
     toggleQuote,
 } from './formatting.ts';
+import { componentCommands } from './components.ts';
 
 export interface Command {
     id: string;
@@ -79,6 +80,21 @@ export function commandTable(app: AppActions): Command[] {
         },
         { id: 'line.select', label: 'Select line', group: 'Lists and lines', key: 'Mod-l', run: selectLine },
         { id: 'edit.comment', label: 'Toggle MDX comment', group: 'Lists and lines', key: 'Mod-/', run: toggleComment },
+
+        {
+            id: 'component.raw',
+            label: 'Show or hide component source',
+            group: 'Components',
+            key: 'Mod-Enter',
+            run: componentCommands.toggleRaw,
+        },
+        {
+            id: 'component.leave',
+            label: 'Leave component',
+            group: 'Components',
+            key: 'Escape',
+            run: componentCommands.leave,
+        },
 
         {
             id: 'edit.nextOccurrence',

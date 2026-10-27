@@ -59,3 +59,43 @@ export interface ClientConfig {
     /** Whether `GET /emoji` serves a shortcode table. */
     emoji: boolean;
 }
+
+/** One prop of a component, read from its `Props` type. */
+export interface PropInfo {
+    name: string;
+    required: boolean;
+    /** The type as written, e.g. `'note' | 'warning'`. */
+    type: string;
+    /** How the props popover edits it; `expression` props are written as `{…}`. */
+    kind: 'string' | 'number' | 'boolean' | 'enum' | 'expression';
+    /** The string literals of an `enum` prop. */
+    options?: string[];
+    /** The default from the component's destructuring (`kind = 'aside'`), as written. */
+    default?: string;
+    /** The prop's JSDoc. */
+    doc?: string;
+}
+
+/** A component an entry can use, from `GET /registry`. */
+export interface ComponentInfo {
+    /** The tag name. */
+    name: string;
+    /** The component's file, relative to the project root. */
+    file: string;
+    /** The component's header comment, without the comment markers. */
+    doc: string;
+    /** Null when the props couldn't be read (an unsupported file type, no `Props`). */
+    props: PropInfo[] | null;
+    /** Whether it renders children (a `<slot/>`, or a `children` prop). */
+    children: boolean;
+    /** How it's usually written in the collection, for inserting it. */
+    form: 'block' | 'line' | 'void';
+    /** The import line to add before using it, or null when it's global or already imported. */
+    import: string | null;
+}
+
+export interface Registry {
+    components: ComponentInfo[];
+    /** The quote the collection writes string props with. */
+    quote: '"' | "'";
+}

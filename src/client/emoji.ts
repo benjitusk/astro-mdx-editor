@@ -1,4 +1,4 @@
-import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 import { syntaxTree } from '@codemirror/language';
 import { StateEffect, StateField, type EditorState, type Range } from '@codemirror/state';
 import { Decoration, WidgetType, type EditorView } from '@codemirror/view';
@@ -132,7 +132,7 @@ export function searchEmoji(table: EmojiTable, query: string, limit = 40): [stri
     return tiers.flat().slice(0, limit);
 }
 
-function emojiCompletions(context: CompletionContext): CompletionResult | null {
+export function emojiCompletions(context: CompletionContext): CompletionResult | null {
     const table = context.state.field(emojiTable, false);
     if (!table) return null;
     const word = context.matchBefore(/:[\w+-]*$/);
@@ -152,8 +152,6 @@ function emojiCompletions(context: CompletionContext): CompletionResult | null {
         })),
     };
 }
-
-export const emojiCompletion = autocompletion({ override: [emojiCompletions], icons: false });
 
 export async function loadEmoji(view: EditorView, token: string) {
     try {

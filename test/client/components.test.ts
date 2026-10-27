@@ -19,7 +19,7 @@ describe('mode A components', () => {
         const v = view(doc, componentExtensions(api));
         v.dispatch({ selection: { anchor: at(v, 'To give') } });
         expect(renderedAt(v.state, at(v, 'To form'))).toBe(false);
-        expect(v.state.field(components).entered.map((e) => e.name)).toEqual(['Define']);
+        expect(v.state.field(components).entered.map((e) => e.el.name)).toEqual(['Define']);
     });
     it('shows the tag raw when the cursor is in it', () => {
         const v = view(doc, componentExtensions(api));
@@ -34,7 +34,7 @@ describe('mode A components', () => {
         expect(v.state.field(components).entered).toEqual([]);
         v.dispatch({ selection: { anchor: v.state.doc.length } });
         v.dispatch({ selection: { anchor: at(v, 'To give') } });
-        expect(v.state.field(components).entered.map((e) => e.name)).toEqual(['Define']);
+        expect(v.state.field(components).entered.map((e) => e.el.name)).toEqual(['Define']);
     });
     it("won't let Backspace merge the children into the opening tag", () => {
         const v = view(doc, componentExtensions(api));

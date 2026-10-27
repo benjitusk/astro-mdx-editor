@@ -38,7 +38,7 @@ export function openCheatsheet(view: EditorView, commands: Command[], overrides:
             'p',
             { class: 'note' },
             'Typing *, _ or ` with text selected wraps it. Enter continues a list or quote. Cmd-Shift-V pastes plain text. ' +
-                'Type : and two letters for emoji. Click a callout’s icon to change its type.'
+                'Type / at the start of a line to insert a component or block, and : and two letters for emoji. Click a component’s chip (or Cmd-Alt-,) to edit its props, and a callout’s icon to change its type.'
         )
     );
     openDialog(body, () => view.focus());

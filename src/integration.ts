@@ -7,6 +7,7 @@ import { mountApi } from './server/api.ts';
 import { loadEmojiTable, type EmojiTable } from './server/emoji.ts';
 import { entryForPath, resolveCollections } from './server/entries.ts';
 import { routeFullReloads } from './server/reload.ts';
+import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
 import type { MdxEditorOptions, ResolvedCollection } from './types.ts';
@@ -94,6 +95,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                     token,
                     collections,
                     renderer: createRenderer(server, root),
+                    registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),
                     emoji: () => {
                         if (options.emoji === false) return Promise.resolve(null);
                         return (emoji ??= loadEmojiTable(root, options.emoji ?? {}));

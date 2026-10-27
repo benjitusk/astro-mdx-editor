@@ -1,4 +1,4 @@
-import type { ClientConfig } from '../types.ts';
+import type { ClientConfig, Registry } from '../types.ts';
 
 // Shared with src/server/api.ts; duplicated so the client bundle doesn't pull in Node modules.
 export const API_BASE = '/__edit/api';
@@ -21,13 +21,18 @@ export function createApi(cfg: ClientConfig) {
             return r.json();
         },
         /** The element's MDX rendered by the site's pipeline (see src/server/render.ts). */
-        async render(source: string): Promise<{ html?: string; error?: string }> {
+        async render(source: string, esm: string): Promise<{ html?: string; error?: string }> {
             const r = await fetch(`${API_BASE}/render`, {
                 method: 'POST',
                 headers: { ...headers, 'content-type': 'application/json' },
-                body: JSON.stringify({ collection: cfg.collection, id: cfg.id, source }),
+                body: JSON.stringify({ collection: cfg.collection, id: cfg.id, source, esm }),
             });
             if (!r.ok) throw new Error(`render failed: ${r.status}`);
+            return r.json();
+        },
+        async registry(): Promise<Registry> {
+            const r = await fetch(`${API_BASE}/registry?${query}`, { headers });
+            if (!r.ok) throw new Error(`registry failed: ${r.status}`);
             return r.json();
         },
         /** Resolves to the new hash, or to the file's current contents when it changed underneath us. */

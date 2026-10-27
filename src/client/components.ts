@@ -19,7 +19,11 @@ import {
 import type { Api } from './api.ts';
 import { h } from './dom.ts';
 import { allElements, elementAt, jsxField, type JsxElement } from './jsx.ts';
+import { metaField } from './meta.ts';
+import { openProps, propsField } from './props.ts';
+import { registryField } from './registry.ts';
 import { prefix, prefixSource, type Prefix } from './livepreview.ts';
+import { rawOpen, toggleRaw } from './raw.ts';
 import { caretPoint, renderedText, sourceOffsetFor } from './textmap.ts';
 
 /**
@@ -48,6 +52,16 @@ function keyOf(source: string): string {
     return `${(h >>> 0).toString(36)}-${source.length}`;
 }
 
+/** The file's imports and exports, sent with each render (an element may need a new import). */
+function esmOf(state: EditorState): string {
+    return state
+        .field(metaField)
+        .esm.map((s) => state.sliceDoc(s.from, s.to))
+        .join('\n');
+}
+
+const renderKey = (esm: string, source: string) => keyOf(`${esm}\0${source}`);
+
 interface Renders {
     results: Map<string, RenderResult>;
     /** The last good render at each element position, shown while a changed element re-renders. */
@@ -70,37 +84,13 @@ const renders = StateField.define<Renders>({
         }
         if (done.length || tr.docChanged) {
             stale = new Map(stale);
+            const esm = esmOf(tr.state);
             for (const el of allElements(tr.state.field(jsxField))) {
-                const html = results.get(keyOf(tr.state.sliceDoc(el.from, el.to)))?.html;
+                const html = results.get(renderKey(esm, tr.state.sliceDoc(el.from, el.to)))?.html;
                 if (html !== undefined) stale.set(el.from, html);
             }
         }
         return results === value.results && stale === value.stale ? value : { results, stale };
-    },
-});
-
-// ---------- raw (</>) state ----------
-
-const toggleRaw = StateEffect.define<number>();
-
-/** Elements shown as raw MDX (by start position). An element leaves raw mode when the cursor leaves it. */
-const rawOpen = StateField.define<number[]>({
-    create: () => [],
-    update(value, tr) {
-        let out = tr.docChanged ? value.map((p) => tr.changes.mapPos(p)) : value;
-        for (const e of tr.effects) {
-            if (!e.is(toggleRaw)) continue;
-            out = out.includes(e.value) ? out.filter((p) => p !== e.value) : [...out, e.value];
-        }
-        if (out.length && (tr.selection || tr.docChanged)) {
-            const els = [...allElements(tr.state.field(jsxField))];
-            const head = tr.state.selection.main.head;
-            out = out.filter((p) => {
-                const el = els.find((e) => e.from === p);
-                return el && head >= el.from && head <= el.to;
-            });
-        }
-        return out;
     },
 });
 
@@ -110,11 +100,54 @@ export function blockRange(state: EditorState, el: JsxElement) {
     return { from: state.doc.lineAt(el.from).from, to: state.doc.lineAt(el.to).to };
 }
 
-/** Where typing starts in a block's children: the first child line, after its indentation. */
-function contentStart(state: EditorState, el: JsxElement) {
-    const line = state.doc.lineAt(el.innerFrom);
-    return Math.min(line.from + el.childIndent, line.to);
+/** The lines between a block's tags, or null when the tags are on adjacent lines. */
+function interior(state: EditorState, el: JsxElement) {
+    const first = state.doc.lineAt(el.openTo).number + 1;
+    const last = state.doc.lineAt(el.closeFrom).number - 1;
+    return first <= last ? { first, last } : null;
 }
+
+/** A block's framed lines: its children, plus the cursor's line when that's a blank line between the tags. */
+interface Frame {
+    el: JsxElement;
+    /** Start of the first framed line and end of the last. */
+    from: number;
+    to: number;
+}
+
+function blockFrame(state: EditorState, el: JsxElement, head: number): Frame | null {
+    const inner = interior(state, el);
+    if (!inner) return null;
+    let first = el.innerFrom < el.innerTo ? state.doc.lineAt(el.innerFrom).number : Infinity;
+    let last = el.innerFrom < el.innerTo ? state.doc.lineAt(el.innerTo).number : -Infinity;
+    const h = state.doc.lineAt(head).number;
+    if (h >= inner.first && h <= inner.last) {
+        first = Math.min(first, h);
+        last = Math.max(last, h);
+    }
+    if (first > last) return null;
+    return { el, from: state.doc.line(first).from, to: state.doc.line(last).to };
+}
+
+/**
+ * Where typing starts in a block: the first child line after its indentation, or for a block with
+ * only blank lines inside, the middle one. Null when there's nowhere to type (tags on adjacent lines).
+ */
+function contentStart(state: EditorState, el: JsxElement): number | null {
+    if (el.kind === 'line') return el.innerFrom;
+    if (el.innerFrom < el.innerTo) {
+        const line = state.doc.lineAt(el.innerFrom);
+        return Math.min(line.from + el.childIndent, line.to);
+    }
+    const inner = interior(state, el);
+    if (!inner) return null;
+    const line = state.doc.line(Math.floor((inner.first + inner.last) / 2));
+    return line.to;
+}
+
+/** Can the element be entered as a frame (rather than edited raw)? */
+const framable = (state: EditorState, el: JsxElement) =>
+    el.kind === 'line' || (el.kind === 'block' && contentStart(state, el) !== null);
 
 function headInside(state: EditorState, el: JsxElement) {
     const { from, to } = el.kind === 'inline' ? el : blockRange(state, el);
@@ -126,8 +159,6 @@ function headInside(state: EditorState, el: JsxElement) {
 function touches(state: EditorState, el: JsxElement) {
     return state.selection.ranges.some((r) => r.from <= el.to && r.to >= el.from);
 }
-
-const hasChildren = (el: JsxElement) => el.innerFrom < el.innerTo;
 
 // ---------- widgets ----------
 
@@ -156,18 +187,19 @@ function enterFromClick(view: EditorView, el: JsxElement, dom: HTMLElement, e: M
     const offset = at >= 0 ? sourceOffsetFor(source, text, at) : null;
     let pos = offset === null ? null : el.from + offset;
     const inChildren = pos !== null && pos >= el.innerFrom && pos <= el.innerTo;
-    if ((el.kind === 'block' || el.kind === 'line') && hasChildren(el)) {
-        if (pos !== null && !inChildren) {
-            // The text is a prop value: show the tag and put the cursor there.
-            view.dispatch({ effects: toggleRaw.of(el.from), selection: { anchor: pos }, userEvent: 'select.pointer' });
-            return;
-        }
-        if (pos === null) pos = el.kind === 'block' ? contentStart(state, el) : el.innerFrom;
-        view.dispatch({ selection: { anchor: pos }, userEvent: 'select.pointer' });
+    if (pos !== null && !inChildren) {
+        // The text is a prop value (a headword, an attribution): edit that prop.
+        const prop = el.props.find((p) => pos! >= p.from && pos! <= p.to);
+        view.dispatch({ effects: openProps.of({ from: el.from, focus: prop?.name ?? null }) });
         return;
     }
-    // Self-closing or empty: edit as raw MDX.
-    view.dispatch({ effects: toggleRaw.of(el.from), selection: { anchor: pos ?? el.from + 1 + el.name.length } });
+    const start = framable(state, el) ? contentStart(state, el) : null;
+    // Self-closing, or text that isn't in the source at all (a label the component adds): the props.
+    if (start === null || (pos === null && at >= 0)) {
+        view.dispatch({ effects: openProps.of({ from: el.from }) });
+        return;
+    }
+    view.dispatch({ selection: { anchor: pos ?? start }, userEvent: 'select.pointer' });
 }
 
 function rawButton(view: EditorView, el: JsxElement) {
@@ -223,7 +255,8 @@ class RenderedWidget extends WidgetType {
             if (e.button !== 0) return;
             e.preventDefault();
             enterFromClick(view, el, dom, e);
-            view.focus();
+            // The props popover takes focus when the click opened it.
+            if (!view.state.field(propsField, false)) view.focus();
         });
         return dom;
     }
@@ -246,11 +279,10 @@ function chip(view: EditorView, el: JsxElement) {
         'span',
         {
             class: 'mdx-chip',
-            title: 'Edit the tag as MDX',
+            title: 'Edit props (Cmd-Alt-,)',
             onmousedown: (e: Event) => {
                 e.preventDefault();
-                view.dispatch({ effects: toggleRaw.of(el.from), selection: { anchor: el.from + 1 + el.name.length } });
-                view.focus();
+                view.dispatch({ effects: openProps.of({ from: el.from }) });
             },
         },
         h('b', {}, el.name),
@@ -324,9 +356,9 @@ interface Components {
     atomic: RangeSet<Decoration>;
     prefixes: RangeSet<Prefix>;
     /** Elements shown rendered, with their render keys, for the requester. */
-    wanted: { key: string; source: string }[];
-    /** Innermost-first chain of block elements the cursor is in (framed). */
-    entered: JsxElement[];
+    wanted: { key: string; source: string; esm: string }[];
+    /** Innermost-first chain of the elements the cursor is in (framed). */
+    entered: Frame[];
 }
 
 function build(state: EditorState): Components {
@@ -334,15 +366,16 @@ function build(state: EditorState): Components {
     const atomic: Range<Decoration>[] = [];
     const prefixes: Range<Prefix>[] = [];
     const wanted: Components['wanted'] = [];
-    const entered: JsxElement[] = [];
+    const entered: Frame[] = [];
     const raw = state.field(rawOpen);
     const { results, stale } = state.field(renders);
+    const esm = esmOf(state);
 
     const render = (el: JsxElement, depth: number) => {
         const source = state.sliceDoc(el.from, el.to);
-        const key = keyOf(source);
+        const key = renderKey(esm, source);
         const result = results.get(key);
-        if (!result) wanted.push({ key, source });
+        if (!result) wanted.push({ key, source, esm });
         const html = result?.html ?? stale.get(el.from) ?? null;
         const ctx: WidgetContext = {
             el,
@@ -374,7 +407,7 @@ function build(state: EditorState): Components {
             }
             if (raw.includes(el.from)) continue;
             const head = state.selection.main.head;
-            if (el.kind === 'line' && hasChildren(el)) {
+            if (el.kind === 'line') {
                 if (head < el.openTo || head > el.closeFrom) continue; // in a tag: raw
                 const line = state.doc.lineAt(el.from);
                 out.push(
@@ -386,19 +419,20 @@ function build(state: EditorState): Components {
                 out.push(Decoration.replace({ widget: new LineChip(el) }).range(el.from, el.openTo));
                 out.push(Decoration.replace({}).range(el.closeFrom, el.to));
                 prefixes.push(prefix.range(el.from, el.openTo));
-                entered.unshift(el);
+                entered.unshift({ el, from: el.innerFrom, to: el.innerTo });
                 walk(el.children, depth + 1);
                 continue;
             }
-            if (el.kind !== 'block' || !hasChildren(el)) continue; // void, empty, inline: raw while inside
-            if (head < el.innerFrom || head > el.innerTo) continue; // in a tag line: raw
+            if (el.kind !== 'block') continue; // void, inline: raw while inside
+            const f = blockFrame(state, el, head);
+            if (!f || head < f.from || head > f.to) continue; // in a tag line: raw
             const { from, to } = blockRange(state, el);
             const top = Decoration.replace({ widget: new FrameTop(el, depth + 1), block: true });
             const bottom = Decoration.replace({ widget: new FrameBottom(depth + 1), block: true });
-            out.push(top.range(from, el.innerFrom - 1), bottom.range(el.innerTo + 1, to));
-            atomic.push(top.range(from, el.innerFrom - 1), bottom.range(el.innerTo + 1, to));
-            const first = state.doc.lineAt(el.innerFrom).number;
-            const last = state.doc.lineAt(el.innerTo).number;
+            out.push(top.range(from, f.from - 1), bottom.range(f.to + 1, to));
+            atomic.push(top.range(from, f.from - 1), bottom.range(f.to + 1, to));
+            const first = state.doc.lineAt(f.from).number;
+            const last = state.doc.lineAt(f.to).number;
             for (let n = first; n <= last; n++) {
                 const line = state.doc.line(n);
                 const cls = `mdx-frame${n === first ? ' mdx-frame-first' : ''}${n === last ? ' mdx-frame-last' : ''}`;
@@ -414,7 +448,7 @@ function build(state: EditorState): Components {
                     prefixes.push(prefix.range(line.from, line.from + indent));
                 }
             }
-            entered.unshift(el);
+            entered.unshift(f);
             walk(el.children, depth + 1);
         }
     };
@@ -459,10 +493,10 @@ function requester(api: Api) {
                 this.timer = setTimeout(() => this.fetch(), ms);
             }
             fetch() {
-                for (const { key, source } of this.view.state.field(components).wanted) {
+                for (const { key, source, esm } of this.view.state.field(components).wanted) {
                     if (this.inflight.has(key)) continue;
                     this.inflight.add(key);
-                    api.render(source)
+                    api.render(source, esm)
                         .then((result) => this.view.dispatch({ effects: renderDone.of({ key, result }) }))
                         .catch((e) =>
                             this.view.dispatch({ effects: renderDone.of({ key, result: { error: String(e) } }) })
@@ -492,27 +526,21 @@ function arrow(down: boolean) {
         const line = state.doc.lineAt(sel.head);
         // Into a rendered block or one-line element right above or below the cursor's line.
         for (const target of allElements(state.field(jsxField))) {
-            if (target.kind === 'inline' || target.kind === 'void' || !hasChildren(target)) continue;
-            if (headInside(state, target)) continue;
+            if (!framable(state, target) || headInside(state, target)) continue;
             const r = blockRange(state, target);
             if (down ? line.to + 1 !== r.from : line.from - 1 !== r.to) continue;
-            const anchor =
-                target.kind === 'line'
-                    ? down
-                        ? target.innerFrom
-                        : target.innerTo
-                    : down
-                      ? contentStart(state, target)
-                      : target.innerTo;
+            const empty = target.innerFrom >= target.innerTo;
+            const anchor = down || empty ? contentStart(state, target)! : target.innerTo;
             view.dispatch({ selection: { anchor }, scrollIntoView: true });
             return true;
         }
         // Out of the innermost frame when the move would leave its children.
-        const el = innermostEntered(state);
-        if (!el) return false;
+        const f = innermostEntered(state);
+        if (!f) return false;
         const next = view.moveVertically(sel, down);
+        const { el } = f;
         if (el.kind === 'line') return next.head < el.from || next.head > el.to ? exitBlock(view, el, down) : false;
-        if ((down && next.head > el.innerTo) || (!down && next.head < el.innerFrom)) return exitBlock(view, el, down);
+        if ((down && next.head > f.to) || (!down && next.head < f.from)) return exitBlock(view, el, down);
         return false;
     };
 }
@@ -531,11 +559,13 @@ function guard(backward: boolean) {
         const { state } = view;
         const sel = state.selection.main;
         if (!sel.empty) return false;
-        const el = innermostEntered(state);
-        if (!el) return false;
+        const f = innermostEntered(state);
+        if (!f) return false;
+        const { el } = f;
         if (el.kind === 'line') return backward ? sel.head === el.innerFrom : sel.head === el.innerTo;
-        const start = state.doc.lineAt(el.innerFrom);
-        return backward ? sel.head >= start.from && sel.head <= contentStart(state, el) : sel.head === el.innerTo;
+        const start = state.doc.lineAt(f.from);
+        const indent = Math.min(el.childIndent, /^[ \t]*/.exec(start.text)![0].length);
+        return backward ? sel.head >= start.from && sel.head <= start.from + indent : sel.head === f.to;
     };
 }
 
@@ -548,8 +578,8 @@ function toggleRawAtCursor(view: EditorView): boolean {
 }
 
 function leave(view: EditorView): boolean {
-    const el = innermostEntered(view.state);
-    return el ? exitBlock(view, el, true) : false;
+    const f = innermostEntered(view.state);
+    return f ? exitBlock(view, f.el, true) : false;
 }
 
 export const componentCommands = {
@@ -561,6 +591,8 @@ export function componentExtensions(api: Api): Extension {
     return [
         renders,
         rawOpen,
+        registryField,
+        propsField,
         components,
         requester(api),
         Prec.highest(

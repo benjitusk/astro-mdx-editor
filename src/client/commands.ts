@@ -22,6 +22,8 @@ import {
 } from './formatting.ts';
 import { pickCallout } from './callouts.ts';
 import { componentCommands } from './components.ts';
+import { openPropsAtCursor } from './props.ts';
+import { pickComponent } from './slash.ts';
 
 export interface Command {
     id: string;
@@ -90,6 +92,14 @@ export function commandTable(app: AppActions): Command[] {
             key: 'Mod-Enter',
             run: componentCommands.toggleRaw,
         },
+        {
+            id: 'component.props',
+            label: 'Edit component props',
+            group: 'Components',
+            key: 'Mod-Alt-,',
+            run: openPropsAtCursor,
+        },
+        { id: 'component.insert', label: 'Insert component…', group: 'Components', run: pickComponent },
         {
             id: 'component.leave',
             label: 'Leave component',

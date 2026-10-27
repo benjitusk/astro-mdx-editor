@@ -1,3 +1,4 @@
+import { autocompletion } from '@codemirror/autocomplete';
 import { history } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { EditorState, type Extension } from '@codemirror/state';
@@ -7,14 +8,16 @@ import { createApi } from './api.ts';
 import { calloutClicks, calloutLooks, calloutTypes, loadCalloutLooks } from './callouts.ts';
 import { commandKeymap, commandTable } from './commands.ts';
 import { componentExtensions } from './components.ts';
-import { emojiCompletion, emojiTable, loadEmoji } from './emoji.ts';
+import { emojiCompletions, emojiTable, loadEmoji } from './emoji.ts';
 import { jsxField } from './jsx.ts';
 import { livePreviewExtensions } from './livepreview.ts';
 import { metaField } from './meta.ts';
 import { openCheatsheet, openPalette } from './palette.ts';
+import { loadRegistry } from './registry.ts';
 import { smartPaste } from './paste.ts';
 import { handleReloads, restoreSnapshot } from './reload.ts';
 import { Saver, saveExtension } from './save.ts';
+import { slashCompletions } from './slash.ts';
 import { typography, wrapOnType } from './typography.ts';
 
 /** Everything that doesn't need a view: shared by the editor and the round-trip test. */
@@ -51,7 +54,8 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
                 componentExtensions(api),
                 calloutTypes.of(cfg.callouts),
                 calloutClicks,
-                emojiCompletion,
+                // One completion config: `/` menu at a line start, emoji after `:`.
+                autocompletion({ override: [slashCompletions, emojiCompletions], icons: false }),
                 commandKeymap(commands, cfg.keymap),
                 wrapOnType,
                 typography(cfg.typography),
@@ -66,6 +70,7 @@ export function createEditor(parent: HTMLElement, cfg: ClientConfig, text: strin
     restoreSnapshot(view, cfg);
     handleReloads(view, saver, cfg);
     void loadCalloutLooks(view, api);
+    void loadRegistry(view, api);
     if (cfg.emoji) void loadEmoji(view, cfg.token);
     return { view, saver, commands };
 }

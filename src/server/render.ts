@@ -6,8 +6,6 @@ import { fileURLToPath } from 'node:url';
 import type { ViteDevServer } from 'vite';
 import type { EntryFile } from './entries.ts';
 
-const renderEntry = fileURLToPath(new URL('./render-entry.ts', import.meta.url));
-
 export type RenderResult = { html: string } | { error: string };
 
 /** The file's MDX `import` statements (outside code fences), which a rendered block may need. */
@@ -45,6 +43,7 @@ export function absoluteImports(imports: string[], fromDir: string): string[] {
 export function createRenderer(server: ViteDevServer, root: string) {
     const dir = join(root, 'node_modules', '.mdx-editor', 'snippets');
     const cache = new Map<string, Promise<RenderResult>>();
+    const renderEntry = fileURLToPath(new URL('./render-entry.ts', import.meta.url));
 
     async function renderSnippet(snippet: string): Promise<RenderResult> {
         const hash = createHash('sha1').update(snippet).digest('hex').slice(0, 16);
@@ -63,8 +62,9 @@ export function createRenderer(server: ViteDevServer, root: string) {
         }
     }
 
-    async function render(entry: EntryFile, source: string): Promise<RenderResult> {
-        const text = await readFile(entry.path, 'utf8');
+    /** `esm` is the editor's current import/export text; without it, the file's on disk is used. */
+    async function render(entry: EntryFile, source: string, esm?: string): Promise<RenderResult> {
+        const text = esm ?? (await readFile(entry.path, 'utf8'));
         const imports = absoluteImports(importLines(text), dirname(entry.path));
         const snippet = (imports.length ? imports.join('\n') + '\n\n' : '') + source + '\n';
         let result = cache.get(snippet);

@@ -238,7 +238,7 @@ export async function loadCalloutLooks(view: EditorView, api: Pick<Api, 'render'
     const types = view.state.facet(calloutTypes);
     let html: string | undefined;
     try {
-        ({ html } = await api.render(types.map((t) => `> [!${t}]\n> x`).join('\n\n')));
+        ({ html } = await api.render(types.map((t) => `> [!${t}]\n> x`).join('\n\n'), ''));
     } catch {
         return;
     }

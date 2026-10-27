@@ -5,6 +5,7 @@ import type { ResolvedCollection } from '../types.ts';
 import type { EmojiTable } from './emoji.ts';
 import { entryForPath, findEntry, listEntries, readEntry, writeEntry } from './entries.ts';
 import { hashText } from './hash.ts';
+import type { createRegistry } from './registry.ts';
 import type { createRenderer } from './render.ts';
 
 export const API_BASE = '/__edit/api';
@@ -18,6 +19,7 @@ interface Context {
     token: string;
     collections: ResolvedCollection[];
     renderer: ReturnType<typeof createRenderer>;
+    registry: ReturnType<typeof createRegistry>;
     /** The site's emoji shortcodes, or null when emoji are off or the site has no satteri-emoji. */
     emoji: () => Promise<EmojiTable | null>;
 }
@@ -79,11 +81,26 @@ export function mountApi(server: ViteDevServer, ctx: Context) {
                 const table = await ctx.emoji();
                 return table ? send(res, 200, table) : send(res, 404, { error: 'no emoji' });
             }
+            if (url.pathname === '/registry' && req.method === 'GET') {
+                const file = await findEntry(
+                    ctx.collections,
+                    url.searchParams.get('collection') ?? '',
+                    url.searchParams.get('id') ?? ''
+                );
+                if (!file) return send(res, 404, { error: 'no such entry' });
+                return send(res, 200, await ctx.registry.registry(ctx.collections, file));
+            }
             if (url.pathname === '/render' && req.method === 'POST') {
-                const body = JSON.parse(await readBody(req)) as { collection: string; id: string; source: string };
+                const body = JSON.parse(await readBody(req)) as {
+                    collection: string;
+                    id: string;
+                    source: string;
+                    esm?: string;
+                };
                 const file = await findEntry(ctx.collections, body.collection, body.id);
                 if (!file || typeof body.source !== 'string') return send(res, 404, { error: 'no such entry' });
-                return send(res, 200, await ctx.renderer.render(file, body.source));
+                const esm = typeof body.esm === 'string' ? body.esm : undefined;
+                return send(res, 200, await ctx.renderer.render(file, body.source, esm));
             }
             if (url.pathname === '/file') {
                 const file = await findEntry(

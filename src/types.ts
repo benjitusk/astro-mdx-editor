@@ -54,11 +54,15 @@ export interface EmojiOptions {
 }
 
 export interface MdxEditorOptions {
-    /** An `.astro` component that renders `<slot/>` inside the site's layout and Prose. */
-    shell: string;
+    /**
+     * An `.astro` component that renders `<slot/>` inside the site's layout and Prose. Default: a plain
+     * page, without the site's styles.
+     */
+    shell?: string;
     /** A module exporting the components every entry can use without an import. */
     globals?: string;
-    collections: Record<string, CollectionOptions>;
+    /** The collections to edit, by name. Default: each folder in `src/content/` with `.md` or `.mdx` files. */
+    collections?: Record<string, CollectionOptions>;
     typography?: TypographyOptions;
     /** Key overrides by command id, e.g. `{ 'format.bold': 'Mod-Shift-b' }`. */
     keymap?: Record<string, string>;

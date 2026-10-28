@@ -6,7 +6,8 @@ import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountApi } from './server/api.ts';
 import { loadEmojiTable, type EmojiTable } from './server/emoji.ts';
-import { entryForPath, resolveCollections } from './server/entries.ts';
+import { discoverCollections, entryForPath, resolveCollections } from './server/entries.ts';
+import { checkOptions } from './server/options.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
@@ -18,6 +19,11 @@ import type { ImageOptions, MdxEditorOptions, ResolvedCollection } from './types
 
 const pkgRoot = fileURLToPath(new URL('..', import.meta.url));
 const page = (name: string) => fileURLToPath(new URL(`./pages/${name}`, import.meta.url));
+/** The Shell when the site sets none: a plain page, without the site's layout. */
+const defaultShell = fileURLToPath(new URL('./shell/DefaultShell.astro', import.meta.url));
+/** Shown wherever a render would fail because the site has no MDX integration. */
+const NO_MDX =
+    '@astrojs/mdx is not in the integrations, so components and HTML in entries can’t render here (Markdown still edits). Add it with `npx astro add mdx`.';
 
 /**
  * The client's dependencies, which the site's dependency optimizer must leave alone: from a sibling
@@ -68,16 +74,22 @@ function frameworkRenderers(config: AstroConfig, root: string): FrameworkRendere
         });
 }
 
+function hasMdx(config: AstroConfig): boolean {
+    return config.integrations.some((i) => i.name === '@astrojs/mdx');
+}
+
 /** A collection's image settings: its own, else the top-level ones, else the defaults. Null when off. */
 export function imageOptions(options: MdxEditorOptions, collection: string): ImageOptions | null {
-    const own = options.collections[collection]?.images;
+    const own = options.collections?.[collection]?.images;
     const value = own ?? options.images;
     return value === false ? null : (value ?? {});
 }
 
-export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
+export default function mdxEditor(siteOptions: MdxEditorOptions = {}): AstroIntegration {
     // A fresh token per dev-server start; it is only ever served inside the editor page.
     const token = randomBytes(24).toString('hex');
+    // The site's options with the defaults filled in, once the project root is known.
+    let options: MdxEditorOptions = siteOptions;
     let collections: ResolvedCollection[] = [];
     let config: AstroConfig;
     let active = false;
@@ -87,9 +99,34 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
         hooks: {
             'astro:config:setup': ({ command, config, injectRoute, updateConfig, logger }) => {
                 if (command !== 'dev') return;
-                active = true;
                 const root = fileURLToPath(config.root);
-                collections = resolveCollections(root, options.collections);
+                // Bad options turn the editor off, never the site's dev server.
+                const { errors, warnings } = checkOptions(siteOptions, root);
+                if (errors.length) {
+                    logger.error(
+                        `The editor is off until its options are fixed:\n${errors.map((e) => `  - ${e}`).join('\n')}`
+                    );
+                    return;
+                }
+                for (const warning of warnings) logger.warn(warning);
+                active = true;
+
+                const named = siteOptions.collections ?? discoverCollections(root);
+                const names = Object.keys(named);
+                if (!siteOptions.collections) {
+                    if (names.length)
+                        logger.info(`Editing ${names.join(', ')} (from src/content/); set \`collections\` to choose.`);
+                    else
+                        logger.warn(
+                            'No collections to edit: no folder in src/content/ has .md or .mdx files. Add one, or set `collections`.'
+                        );
+                }
+                if (!siteOptions.shell)
+                    logger.info(
+                        'Entries open on a plain page; set `shell` to edit them inside your layout (see the README).'
+                    );
+                options = { ...siteOptions, collections: named };
+                collections = resolveCollections(root, named);
                 (globalThis as Record<symbol, unknown>)[Symbol.for('astro-mdx-editor')] = { options };
 
                 injectRoute({ pattern: '/__edit', entrypoint: page('index.astro'), prerender: false });
@@ -104,7 +141,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                             editorVitePlugin({
                                 options,
                                 token,
-                                shell: resolve(root, options.shell),
+                                shell: options.shell ? resolve(root, options.shell) : defaultShell,
                                 globals: options.globals ? resolve(root, options.globals) : null,
                                 collections,
                                 serverModule: siblingModule('./server/entries', import.meta.url),
@@ -119,8 +156,9 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                 });
                 logger.info('Editor at /__edit');
             },
-            'astro:config:done': ({ config: done }) => {
+            'astro:config:done': ({ config: done, logger }) => {
                 config = done;
+                if (active && !hasMdx(done)) logger.error(NO_MDX);
             },
             'astro:server:setup': ({ server }) => {
                 if (!active) return;
@@ -131,8 +169,13 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                     root,
                     collections,
                     images: (name) => imageOptions(options, name),
-                    newEntry: (name) => options.collections[name]?.newEntry,
-                    renderer: createRenderer(server, root, frameworkRenderers(config, root)),
+                    newEntry: (name) => options.collections?.[name]?.newEntry,
+                    renderer: createRenderer(
+                        server,
+                        root,
+                        frameworkRenderers(config, root),
+                        hasMdx(config) ? null : NO_MDX
+                    ),
                     schemas: createSchemas(server, root),
                     registry: createRegistry(server, root, options.globals ? resolve(root, options.globals) : null),
                     emoji: () => {

@@ -41,7 +41,13 @@ export function absoluteImports(imports: string[], fromDir: string): string[] {
  * never touches the module graph), loaded through Vite's SSR runner and rendered with the Container
  * API. Results are cached by hash.
  */
-export function createRenderer(server: ViteDevServer, root: string, frameworks: FrameworkRenderer[] = []) {
+/** `unavailable`: why nothing can render (the site has no MDX integration), shown as each block's error. */
+export function createRenderer(
+    server: ViteDevServer,
+    root: string,
+    frameworks: FrameworkRenderer[] = [],
+    unavailable: string | null = null
+) {
     const dir = join(root, 'node_modules', '.mdx-editor', 'snippets');
     const cache = new Map<string, Promise<RenderResult>>();
     const renderEntry = siblingModule('./render-entry', import.meta.url);
@@ -65,6 +71,7 @@ export function createRenderer(server: ViteDevServer, root: string, frameworks: 
 
     /** `esm` is the editor's current import/export text; without it, the file's on disk is used. */
     async function render(entry: EntryFile, source: string, esm?: string): Promise<RenderResult> {
+        if (unavailable) return { error: unavailable };
         const text = esm ?? (await readFile(entry.path, 'utf8'));
         const imports = absoluteImports(importLines(text), dirname(entry.path));
         const snippet = (imports.length ? imports.join('\n') + '\n\n' : '') + source + '\n';

@@ -115,6 +115,12 @@
 - `newEntry` collection option.
 - Published to npm as `astro-mdx-editor` (MIT): `npm install --save-dev astro-mdx-editor`, then
   `import mdxEditor from 'astro-mdx-editor'`. `npm run build` compiles `dist/`, and runs on `npm pack`.
+- Zero-config setup: `shell` and `collections` are optional, so `npx astro add astro-mdx-editor` works in
+  Astro's blog starter. Without `collections`, every folder in `src/content/` with Markdown or MDX is
+  editable; without `shell`, entries open on a plain page.
+- Options are checked at startup: a mistake turns the editor off with a message naming the option, and
+  the site's dev server keeps running. A missing `@astrojs/mdx` integration is reported at startup and
+  on each block that can't render.
 
 ### Fixed
 

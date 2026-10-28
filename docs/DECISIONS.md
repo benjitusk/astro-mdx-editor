@@ -238,3 +238,17 @@ uses to load `astro.config`, which closes once the config is loaded. Every lazy 
 runner has been closed". As `.js`, Node loads the integration itself, as it does from the sibling checkout.
 The sites stay on the sibling checkout so editor changes show up without a publish; the packed tarball is
 checked in a copy of a site before each release (README, Releasing).
+
+## 29. Zero config, and bad options switch the editor off, not the site (2026-10-28)
+
+**Decision.** `shell` and `collections` are optional. Without `collections`, each folder in `src/content/`
+holding `.md` or `.mdx` files is a collection of the same name; without `shell`, entries open in a plain
+built-in page (`src/shell/DefaultShell.astro`). Options are checked when the dev server starts: errors are
+logged as a list naming each option and the editor stays off, while the site's dev server keeps running.
+A site without the `@astrojs/mdx` integration gets an error at startup, and every block render returns
+the same message.
+**Why.** `npx astro add` writes the integration with no options, which used to crash the whole dev
+server. Astro's starters keep collection `blog` in `src/content/blog`, so folder names are a safe default;
+sites whose names differ set `collections`. The editor is a dev aid, so its own misconfiguration shouldn't
+stop someone working on the rest of the site. Without MDX the render failed with a Vite parse error that
+named nothing the user could act on.

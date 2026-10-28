@@ -2,7 +2,13 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { entryForPath, findEntry, listEntries, resolveCollections } from '../../src/server/entries.ts';
+import {
+    discoverCollections,
+    entryForPath,
+    findEntry,
+    listEntries,
+    resolveCollections,
+} from '../../src/server/entries.ts';
 
 let root: string;
 let collections: ReturnType<typeof resolveCollections>;
@@ -34,5 +40,18 @@ describe('entries', () => {
     });
     it('lists every entry', async () => {
         expect((await listEntries(collections)).map((e) => e.id)).toEqual(['nested/two', 'one']);
+    });
+});
+
+describe('discoverCollections', () => {
+    it('finds folders in src/content with Markdown or MDX, nested too', async () => {
+        await mkdir(join(root, 'src/content/data'), { recursive: true });
+        await writeFile(join(root, 'src/content/data/authors.json'), '[]');
+        await mkdir(join(root, 'src/content/_drafts'), { recursive: true });
+        await writeFile(join(root, 'src/content/_drafts/x.md'), 'x');
+        expect(discoverCollections(root)).toEqual({ essays: {} });
+    });
+    it('finds nothing without src/content', async () => {
+        expect(discoverCollections(await mkdtemp(join(tmpdir(), 'mdx-editor-empty-')))).toEqual({});
     });
 });

@@ -1,0 +1,41 @@
+---
+// The Shell for sites that don't set `shell`: a plain, readable page. Entries show without the site's
+// layout or styles; a Shell of the site's own (see the README) puts them inside it.
+interface Props {
+    collection: string;
+    id: string;
+}
+const { collection, id } = Astro.props;
+const title = `${collection}/${id}`;
+---
+
+<!doctype html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
+        <meta name='robots' content='noindex' />
+        <title>{title}</title>
+        <style is:global>
+            :root {
+                color-scheme: light dark;
+            }
+            body {
+                margin: 0;
+                font:
+                    18px/1.65 system-ui,
+                    sans-serif;
+                color: CanvasText;
+                background: Canvas;
+            }
+            main {
+                max-width: 42rem;
+                margin: 0 auto;
+                padding: 3rem 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <main><slot /></main>
+    </body>
+</html>

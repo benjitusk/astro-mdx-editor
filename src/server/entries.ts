@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { extname, join, relative, resolve, sep } from 'node:path';
 import type { ResolvedCollection } from '../types.ts';
@@ -9,6 +10,28 @@ export interface EntryFile {
     collection: string;
     id: string;
     path: string;
+}
+
+/**
+ * The collections to edit when the site names none: each folder in `src/content/` holding `.md` or `.mdx`
+ * files, by folder name. Astro's starters keep collection `blog` in `src/content/blog`, so this matches.
+ */
+export function discoverCollections(root: string): Record<string, {}> {
+    const content = join(root, 'src', 'content');
+    let folders: string[];
+    try {
+        folders = readdirSync(content, { withFileTypes: true })
+            .filter((d) => d.isDirectory() && !d.name.startsWith('.') && !d.name.startsWith('_'))
+            .map((d) => d.name);
+    } catch {
+        return {};
+    }
+    const found: Record<string, {}> = {};
+    for (const name of folders.sort()) {
+        const files = readdirSync(join(content, name), { recursive: true, encoding: 'utf8' });
+        if (files.some((f) => EXTENSIONS.includes(extname(f)))) found[name] = {};
+    }
+    return found;
 }
 
 export function resolveCollections(root: string, collections: Record<string, { dir?: string }>): ResolvedCollection[] {

@@ -22,26 +22,27 @@ re-serialising, so opening and saving a file changes no bytes.
 
 ## Use it in a site
 
-Check this repo out next to the site (e.g. `~/Projects/astro-mdx-editor` beside `~/Projects/thoughts`) and
-load it from the site's config only when it's there. It isn't an npm dependency, so CI and other machines build the
-site without it.
+Needs Astro 7 with `@astrojs/mdx` 8, and Node 22.18 or later.
+
+```sh
+npm install --save-dev astro-mdx-editor
+```
 
 ```js
 // astro.config.mjs
-import { existsSync } from 'node:fs';
-
-const editorEntry = new URL('../astro-mdx-editor/src/index.ts', import.meta.url);
-const mdxEditor = existsSync(editorEntry) ? (await import(editorEntry.href)).default : null;
+import mdx from '@astrojs/mdx';
+import { defineConfig } from 'astro/config';
+import mdxEditor from 'astro-mdx-editor';
 
 export default defineConfig({
     integrations: [
         mdx(),
-        mdxEditor?.({
+        mdxEditor({
             shell: './src/mdx-editor/Shell.astro',
             globals: './src/mdx-editor/globals.ts',
             collections: { essays: {} },
         }),
-    ].filter(Boolean),
+    ],
 });
 ```
 
@@ -57,7 +58,8 @@ const entry = await getEntry(collection, id);
 <Essay essay={entry} editing><slot /></Essay>
 ```
 
-Then run `astro dev` and open `/__edit`.
+Then run `astro dev` and open `/__edit`. In `astro build` the integration does nothing, so the built site
+is the same with or without it.
 
 Sites whose entries import their components (rather than using `globals`) need nothing extra: the editor
 page imports every component the collection's entries import, so their CSS loads. Framework components
@@ -77,7 +79,7 @@ rendered for the editor, e.g. `<h1 data-mdx-field={editing ? 'title' : undefined
 | `keymap`               | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                                                                           |
 | `callouts`             | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site.                                                     |
 | `emoji`                | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.                                                            |
-| `callouts` (extending) | `import { DEFAULT_CALLOUT_TYPES } from '…/astro-mdx-editor/src/index.ts'`, then `[...DEFAULT_CALLOUT_TYPES, 'console']`.                                                                    |
+| `callouts` (extending) | `import { DEFAULT_CALLOUT_TYPES } from 'astro-mdx-editor'`, then `[...DEFAULT_CALLOUT_TYPES, 'console']`.                                                                                   |
 | `images`               | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                                                                      |
 
 ### Images
@@ -122,7 +124,38 @@ npm install
 npm test            # unit tests
 npm run typecheck
 npm run roundtrip -- ../thoughts ../engineering-notebook   # byte-for-byte round-trip gate
+npm run build       # dist/, what npm publishes (also runs on npm pack)
 ```
+
+To work on the editor against a real site, check this repo out next to it (e.g. `~/Projects/astro-mdx-editor`
+beside `~/Projects/thoughts`) and load the source from the site's config only when it's there. Changes then
+show up without a build or publish, and CI and other machines build the site without the editor:
+
+```js
+// astro.config.mjs
+import { existsSync } from 'node:fs';
+
+const editorEntry = new URL('../astro-mdx-editor/src/index.ts', import.meta.url);
+const mdxEditor = existsSync(editorEntry) ? (await import(editorEntry.href)).default : null;
+
+export default defineConfig({
+    integrations: [mdx(), mdxEditor?.({ shell: './src/mdx-editor/Shell.astro', collections: { essays: {} } })].filter(
+        Boolean
+    ),
+});
+```
+
+### Releasing
+
+The sibling checkout runs the source, so check the package itself before publishing:
+
+1. `npm pack`, then copy a site (skipping its `dist/`, `.git/` and `.astro/dev.json`) and
+   `npm install --no-save <path to the .tgz>` in the copy.
+2. Import `astro-mdx-editor` in the copy's config, run `astro dev`, open an entry with `?selftest`, and
+   check that the frontmatter panel, slash menu and `:emoji:` completion load (they use lazy server imports).
+3. `astro build` the copy.
+4. Move "Unreleased" in CHANGELOG.md under the new version, `npm version <patch|minor|major>`, then
+   `npm publish`.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together, [docs/DECISIONS.md](docs/DECISIONS.md) for
 why it's built this way, and [CHANGELOG.md](CHANGELOG.md) for what's landed.

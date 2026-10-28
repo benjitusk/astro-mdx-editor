@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type ts from 'typescript';
 import type { ViteDevServer } from 'vite';
 import type { CollectionSchema } from '../types.ts';
+import { siblingModule } from './modules.ts';
 
 /**
  * `GET /schema`: a collection's frontmatter schema as JSON Schema (converted from the site's zod
@@ -15,7 +15,7 @@ import type { CollectionSchema } from '../types.ts';
 const CONFIGS = ['src/content.config.ts', 'src/content.config.mjs', 'src/content.config.js', 'src/content/config.ts'];
 
 export function createSchemas(server: ViteDevServer, root: string) {
-    const entry = fileURLToPath(new URL('./schema-entry.ts', import.meta.url));
+    const entry = siblingModule('./schema-entry', import.meta.url);
     const config = CONFIGS.map((c) => join(root, c)).find((p) => existsSync(p)) ?? null;
 
     async function schema(collection: string): Promise<CollectionSchema | null> {

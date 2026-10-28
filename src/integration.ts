@@ -12,6 +12,7 @@ import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
 import type { FrameworkRenderer } from './server/render-entry.ts';
 import { createSchemas } from './server/schema.ts';
+import { siblingModule } from './server/modules.ts';
 import { editorVitePlugin } from './server/vite-plugin.ts';
 import type { ImageOptions, MdxEditorOptions, ResolvedCollection } from './types.ts';
 
@@ -106,7 +107,7 @@ export default function mdxEditor(options: MdxEditorOptions): AstroIntegration {
                                 shell: resolve(root, options.shell),
                                 globals: options.globals ? resolve(root, options.globals) : null,
                                 collections,
-                                serverModule: fileURLToPath(new URL('./server/entries.ts', import.meta.url)),
+                                serverModule: siblingModule('./server/entries', import.meta.url),
                             }),
                         ],
                         // The package lives outside the site (npm link / file:), so its files need

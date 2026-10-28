@@ -2,10 +2,10 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { ViteDevServer } from 'vite';
 import type { EntryFile } from './entries.ts';
 import type { FrameworkRenderer } from './render-entry.ts';
+import { siblingModule } from './modules.ts';
 
 export type RenderResult = { html: string } | { error: string };
 
@@ -44,7 +44,7 @@ export function absoluteImports(imports: string[], fromDir: string): string[] {
 export function createRenderer(server: ViteDevServer, root: string, frameworks: FrameworkRenderer[] = []) {
     const dir = join(root, 'node_modules', '.mdx-editor', 'snippets');
     const cache = new Map<string, Promise<RenderResult>>();
-    const renderEntry = fileURLToPath(new URL('./render-entry.ts', import.meta.url));
+    const renderEntry = siblingModule('./render-entry', import.meta.url);
 
     async function renderSnippet(snippet: string): Promise<RenderResult> {
         const hash = createHash('sha1').update(snippet).digest('hex').slice(0, 16);

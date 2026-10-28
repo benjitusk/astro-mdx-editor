@@ -10,7 +10,8 @@ Read [ARCHITECTURE.md](ARCHITECTURE.md) first, and record new design choices in
 - **Dev only.** Every hook returns early unless `command === 'dev'`.
 - **Every API endpoint is token- and origin-checked.**
 - **TypeScript is erasable-only** (`erasableSyntaxOnly`): Node runs the integration directly. Use `.ts`
-  extensions in relative imports.
+  extensions in relative imports. npm gets `tsc` output (`npm run build`), so a module loaded by path
+  instead of imported is named with `siblingModule()`, never a literal `.ts` URL.
 - **Block widgets get no vertical margins** (see docs/DECISIONS.md, 12): CodeMirror can't see them,
   and clicks below land on the wrong line.
 - **Scripted edits must fail loudly.** When changing files with a script, assert each replacement

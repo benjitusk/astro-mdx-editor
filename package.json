@@ -1,24 +1,43 @@
 {
     "name": "astro-mdx-editor",
     "version": "0.1.0",
-    "private": true,
     "description": "A live-preview MDX editor that runs inside an Astro site's dev server.",
+    "license": "MIT",
+    "author": "Benji Tusk",
+    "keywords": [
+        "astro-integration",
+        "withastro",
+        "astro",
+        "mdx",
+        "markdown",
+        "editor",
+        "codemirror",
+        "live-preview"
+    ],
     "type": "module",
     "engines": {
         "node": ">=22.18.0"
     },
     "exports": {
-        ".": "./src/index.ts",
-        "./pages/*": "./src/pages/*",
-        "./client/*": "./src/client/*",
-        "./server/*": "./src/server/*"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
+    "files": [
+        "dist",
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE"
+    ],
     "scripts": {
         "test": "vitest run",
         "typecheck": "tsc --noEmit",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "roundtrip": "node scripts/roundtrip.ts"
+        "roundtrip": "node scripts/roundtrip.ts",
+        "build": "node scripts/build.ts",
+        "prepack": "npm run build"
     },
     "peerDependencies": {
         "@astrojs/mdx": "^8.0.0",
@@ -36,7 +55,7 @@
         "@lezer/common": "^1.2.3",
         "@lezer/markdown": "^1.4.3",
         "turndown": "^7.2.1",
-        "typescript": "^5.9.0",
+        "typescript": "^5.9.0 || ^6.0.0",
         "yaml": "^2.9.1"
     },
     "devDependencies": {

@@ -113,6 +113,8 @@
 - Live page (Cmd-\\): the collection's `pageUrl` in a pane beside the editor, refreshed by Astro after
   each save.
 - `newEntry` collection option.
+- Published to npm as `astro-mdx-editor` (MIT): `npm install --save-dev astro-mdx-editor`, then
+  `import mdxEditor from 'astro-mdx-editor'`. `npm run build` compiles `dist/`, and runs on `npm pack`.
 
 ### Fixed
 

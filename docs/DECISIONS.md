@@ -70,6 +70,7 @@ _judging_), and those are prose, not code.
 depending on it through npm (`file:`).
 **Why.** A `file:` dependency ends up in the lockfile, and `npm ci` on the deploy runner fails when the
 path doesn't exist. The editor is a local, dev-only tool; machines without it should just build the site.
+_Since 28, this is how sites working on the editor load it; everyone else installs it from npm._
 
 ## 11. A hand-written component scanner, not a full MDX parse (2026-10-27)
 
@@ -224,3 +225,16 @@ so publishing stays a deliberate step outside the editor.
 with every read and write in `try`/`catch`; it has the editor's live preview but no saving to disk.
 **Why.** Notes to self shouldn't end up in the essay, in git, or on the site. Losing them with the browser's
 storage is the accepted cost.
+
+## 28. Published to npm as compiled JavaScript (2026-10-28)
+
+**Decision.** The package is published as `astro-mdx-editor` (MIT) with `exports` pointing at `dist/`, built
+by `tsc` (`rewriteRelativeImportExtensions`) and `scripts/build.ts` on `npm pack`. The source stays
+erasable-only TypeScript, and thoughts and engineering-notebook keep loading it from the sibling checkout.
+`typescript` is a dependency with the range `^5.9.0 || ^6.0.0`, so npm can reuse the site's copy.
+**Why.** Shipping `src/*.ts` loads and renders, but Astro then runs the integration inside the Vite server it
+uses to load `astro.config`, which closes once the config is loaded. Every lazy `import()` after that
+(`typescript` for the schema and registry, the site's satteri-emoji registry) fails with "Vite module
+runner has been closed". As `.js`, Node loads the integration itself, as it does from the sibling checkout.
+The sites stay on the sibling checkout so editor changes show up without a publish; the packed tarball is
+checked in a copy of a site before each release (README, Releasing).

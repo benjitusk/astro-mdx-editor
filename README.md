@@ -22,25 +22,39 @@ re-serialising, so opening and saving a file changes no bytes.
 
 ## Quick start
 
-Needs Astro 7 and Node 22.18 or later. In a new site from Astro's blog starter, or in your own:
+Needs Astro 7 and Node 22.18 or later. Setup has two steps: add the integration, then add a Shell.
+
+### 1. Add the integration
+
+In your site, or in a new one from Astro's blog starter:
 
 ```sh
-npm create astro@latest my-blog -- --template blog
+# npm
+npm create astro@latest my-blog -- --template blog   # new site only
 cd my-blog
 npx astro add astro-mdx-editor
-npm run dev
 ```
 
-Then open [localhost:4321/\_\_edit](http://localhost:4321/__edit). With no options, the editor offers every
-folder in `src/content/` that holds `.md` or `.mdx` files, as a collection of the same name, and opens
-entries on a plain page. Components and HTML in entries render through `@astrojs/mdx`, so add it if your
-site doesn't have it (`npx astro add mdx`); the dev server says so when it's missing. In `astro build` the
-editor does nothing, so the built site is the same with or without it.
+```sh
+# pnpm
+pnpm create astro@latest my-blog --template blog     # new site only
+cd my-blog
+pnpx astro add astro-mdx-editor
+```
 
-## Edit inside your layout
+`astro add` installs the package and adds `mdxEditor()` to `astro.config.mjs`. Components and HTML in
+entries render through `@astrojs/mdx`. The blog starter includes it; other sites can add it with
+`npx astro add mdx` (or `pnpx astro add mdx`), and the dev server says so when it's missing.
 
-A **Shell** puts the editor inside your site's own page, so you write in your real fonts, widths and
-colours. It's a small component that renders `<slot />` inside your post layout. For the blog starter:
+### 2. Add a Shell
+
+> [!IMPORTANT]
+> **Don't skip this step.** Without a Shell, entries open on a plain page with none of your site's
+> CSS. The point of the editor is writing in your real layout, fonts, widths and colours, and that takes a
+> Shell.
+
+A Shell is a small component that renders `<slot />` inside your post layout. The editor passes it the
+entry's `collection` and `id`. For the blog starter:
 
 ```astro
 ---
@@ -53,6 +67,8 @@ const entry = await getEntry(collection, id);
 
 <BlogPost {...entry.data}><slot /></BlogPost>
 ```
+
+Then pass it to the `mdxEditor()` call that `astro add` wrote:
 
 ```js
 // astro.config.mjs
@@ -71,6 +87,15 @@ export default defineConfig({
     ],
 });
 ```
+
+### 3. Write
+
+Run `npm run dev` (or `pnpm dev`) and open [localhost:4321/\_\_edit](http://localhost:4321/__edit). Without
+a `collections` option, the editor offers every folder in `src/content/` that holds `.md` or `.mdx` files,
+as a collection of the same name. In `astro build` the editor does nothing, so the built site is the same
+with or without it.
+
+## Setup notes
 
 Options with a mistake (a typo, a missing file) turn the editor off with a message naming the option;
 the rest of the dev server keeps running.

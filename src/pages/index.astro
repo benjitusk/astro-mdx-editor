@@ -1,6 +1,11 @@
 ---
 // /__edit: every entry the editor can open, and a form per collection for a new one.
+import Shell from 'virtual:mdx-editor/shell';
 import { entries, pageUrl, token } from 'virtual:mdx-editor/server';
+
+// Not rendered: importing the Shell brings the site's stylesheets (and so its colour tokens) onto
+// this page in dev, as the editor page does for components.
+void Shell;
 
 const list = await entries();
 const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collection);
@@ -14,30 +19,31 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
         <meta name='robots' content='noindex' />
         <title>Editor</title>
         <style>
-            /* The editor's own page, not the site's: neutral, from the browser's system colours. */
+            /* The editor's own page, in the site's colours (its tokens), or neutral without them. */
             :root {
                 color-scheme: light dark;
-                --muted: color-mix(in srgb, CanvasText 60%, Canvas);
-                --rule: color-mix(in srgb, CanvasText 14%, Canvas);
+                --mdx-text: var(--text, CanvasText);
+                --mdx-muted: var(--text-muted, color-mix(in srgb, CanvasText 60%, Canvas));
+                --mdx-rule: var(--border, color-mix(in srgb, CanvasText 14%, Canvas));
+                --mdx-accent: var(--accent, AccentColor);
             }
             body {
                 max-width: 40rem;
                 margin: 3rem auto;
                 padding: 0 1rem;
-                font:
-                    16px/1.6 system-ui,
-                    sans-serif;
-                color: CanvasText;
-                background: Canvas;
+                font: 16px/1.6 var(--font-sans, system-ui, sans-serif);
+                color: var(--mdx-text);
+                background: var(--background, Canvas);
             }
             h1 {
                 font-size: 1.5rem;
+                color: var(--mdx-text);
             }
             h2 {
                 margin-top: 2rem;
                 font-size: 1rem;
                 text-transform: capitalize;
-                color: var(--muted);
+                color: var(--mdx-muted);
             }
             ul {
                 padding: 0;
@@ -46,11 +52,12 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
             li {
                 display: flex;
                 gap: 1rem;
+                margin: 0;
                 padding: 0.4rem 0;
-                border-bottom: 1px solid var(--rule);
+                border-bottom: 1px solid var(--mdx-rule);
             }
             a {
-                color: LinkText;
+                color: var(--mdx-accent);
             }
             form {
                 display: flex;
@@ -60,28 +67,31 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
             form input {
                 flex: 1;
                 padding: 0.35rem 0.6rem;
-                border: 1px solid var(--rule);
-                border-radius: 6px;
+                border: 1px solid var(--border-strong, var(--mdx-rule));
+                border-radius: var(--radius-md, 6px);
                 font: inherit;
                 color: inherit;
-                background: transparent;
+                background: var(--surface, transparent);
             }
             form button {
                 padding: 0.35rem 0.9rem;
                 border: 0;
-                border-radius: 6px;
+                border-radius: var(--radius-md, 6px);
                 font: inherit;
-                color: AccentColorText;
-                background: AccentColor;
+                color: var(--background, AccentColorText);
+                background: var(--mdx-accent);
                 cursor: pointer;
             }
+            form button:hover {
+                background: var(--accent-hover, var(--mdx-accent));
+            }
             .error {
-                color: color-mix(in srgb, red 70%, CanvasText);
+                color: var(--mdx-accent);
                 font-size: 0.875rem;
             }
             .page {
                 margin-left: auto;
-                color: var(--muted);
+                color: var(--mdx-muted);
                 font-size: 0.875rem;
             }
         </style>

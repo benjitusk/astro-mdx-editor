@@ -131,11 +131,11 @@ has are skipped):
 
 ```js
 // A Markdown image (the default)
-images: { dir: 'src/assets/essays/{id}' },
+images: { dir: 'src/assets/blog/{id}' },
 
 // An imported image in a component
 images: {
-    dir: 'src/assets/projects/{id}',
+    dir: 'src/assets/blog/{id}',
     snippet: ({ path, alt, ident }) => ({
         imports: [`import Figure from '../../components/Figure.astro';`, `import ${ident} from '${path}';`],
         markup: `<Figure src={${ident}} alt="${alt}" />`,
@@ -150,7 +150,7 @@ frontmatter is `newEntry(title)` (default `{ title }`), with dates written as `Y
 the schema requires filled with an empty value:
 
 ```js
-collections: { essays: { newEntry: (title) => ({ title, description: '', pubDate: new Date(), draft: true }) } },
+collections: { blog: { newEntry: (title) => ({ title, description: '', pubDate: new Date() }) } },
 ```
 
 Commit (Cmd-Shift-G) saves, then commits only the open entry and the images it references that git
@@ -162,13 +162,14 @@ doesn't have yet, with your message. Whatever else is staged stays staged. Nothi
 npm install
 npm test            # unit tests
 npm run typecheck
-npm run roundtrip -- ../thoughts ../engineering-notebook   # byte-for-byte round-trip gate
+npm run roundtrip -- <site> [<site>…]   # byte-for-byte round-trip gate over each site's src/content
 npm run build       # dist/, what npm publishes (also runs on npm pack)
 ```
 
-To work on the editor against a real site, check this repo out next to it (e.g. `~/Projects/astro-mdx-editor`
-beside `~/Projects/thoughts`) and load the source from the site's config only when it's there. Changes then
-show up without a build or publish, and CI and other machines build the site without the editor:
+To work on the editor against a real site, check this repo out in the same folder as the site (so
+`astro-mdx-editor/` sits beside `my-blog/`) and load the source from the site's config only when it's
+there. Changes then show up without a build or publish, and CI and other machines build the site without
+the editor:
 
 ```js
 // astro.config.mjs
@@ -178,7 +179,7 @@ const editorEntry = new URL('../astro-mdx-editor/src/index.ts', import.meta.url)
 const mdxEditor = existsSync(editorEntry) ? (await import(editorEntry.href)).default : null;
 
 export default defineConfig({
-    integrations: [mdx(), mdxEditor?.({ shell: './src/mdx-editor/Shell.astro', collections: { essays: {} } })].filter(
+    integrations: [mdx(), mdxEditor?.({ shell: './src/mdx-editor/Shell.astro', collections: { blog: {} } })].filter(
         Boolean
     ),
 });

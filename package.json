@@ -4,6 +4,14 @@
     "description": "A live-preview MDX editor that runs inside an Astro site's dev server.",
     "license": "MIT",
     "author": "Benji Tusk",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/benjitusk/astro-mdx-editor.git"
+    },
+    "homepage": "https://github.com/benjitusk/astro-mdx-editor#readme",
+    "bugs": {
+        "url": "https://github.com/benjitusk/astro-mdx-editor/issues"
+    },
     "keywords": [
         "astro-integration",
         "withastro",

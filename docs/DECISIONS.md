@@ -252,3 +252,15 @@ server. Astro's starters keep collection `blog` in `src/content/blog`, so folder
 sites whose names differ set `collections`. The editor is a dev aid, so its own misconfiguration shouldn't
 stop someone working on the rest of the site. Without MDX the render failed with a Vite parse error that
 named nothing the user could act on.
+
+## 30. A version bump pushed to main is a release (2026-10-28)
+
+**Decision.** `.github/workflows/release.yml` runs the tests and typecheck on every push to `main`. When
+`package.json` has a version that isn't on npm, it publishes it through npm trusted publishing and creates
+the `v<version>` tag and GitHub release, with that version's CHANGELOG.md section as the notes. A release
+whose CHANGELOG section is missing fails before anything is published.
+**Why.** Releasing is then one step (bump, commit, push), and npm, the tag and the GitHub release can't
+drift apart. Each step checks what is already out, so a rerun, or a version published by hand first,
+finishes the rest instead of failing. Trusted publishing needs no npm token in the repo, and npm adds
+provenance. The pack-and-install check in the README stays a manual step before the bump: it needs a real
+site and a browser.

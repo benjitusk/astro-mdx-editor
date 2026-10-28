@@ -193,8 +193,13 @@ The sibling checkout runs the source, so check the package itself before publish
 2. Import `astro-mdx-editor` in the copy's config, run `astro dev`, open an entry with `?selftest`, and
    check that the frontmatter panel, slash menu and `:emoji:` completion load (they use lazy server imports).
 3. `astro build` the copy.
-4. Move "Unreleased" in CHANGELOG.md under the new version, `npm version <patch|minor|major>`, then
-   `npm publish`.
+4. Move "Unreleased" in CHANGELOG.md under the new version, run
+   `npm version <patch|minor|major> --no-git-tag-version`, commit, and push to `main`.
+
+The [release workflow](.github/workflows/release.yml) does the rest. When `package.json` has a version
+that isn't on npm yet, it publishes that version, then creates the `v<version>` tag and a GitHub release
+whose notes are that version's CHANGELOG.md section. Pushes that don't change the version only run the
+tests.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how it fits together, [docs/DECISIONS.md](docs/DECISIONS.md) for
 why it's built this way, and [CHANGELOG.md](CHANGELOG.md) for what's landed.

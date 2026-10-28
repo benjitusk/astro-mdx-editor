@@ -19,20 +19,27 @@ const pkgRoot = fileURLToPath(new URL('..', import.meta.url));
 const page = (name: string) => fileURLToPath(new URL(`./pages/${name}`, import.meta.url));
 
 /**
- * The client's dependencies live in this package's node_modules, which the site's dependency
- * optimizer can't resolve from the site root. They are all plain ES modules, so they are excluded
- * from optimizing and served as they are (one copy each, from here).
+ * The client's dependencies, which the site's dependency optimizer must leave alone: from a sibling
+ * checkout they live in this package's node_modules, which it can't resolve from the site root, and
+ * pre-bundling some CodeMirror packages but not others would load two copies of @codemirror/state.
+ * They are all plain ES modules, so they are excluded and served as they are, one copy each.
+ * Installed from npm they are usually hoisted into the site's node_modules, so every node_modules
+ * folder Node would look in from here is scanned.
  */
 function clientDependencies(): string[] {
-    const modules = join(pkgRoot, 'node_modules');
-    const names: string[] = [];
-    for (const entry of safeReaddir(modules)) {
-        if (entry.startsWith('.')) continue;
-        if (entry.startsWith('@')) {
-            for (const sub of safeReaddir(join(modules, entry))) names.push(`${entry}/${sub}`);
-        } else names.push(entry);
+    const lookup = createRequire(join(pkgRoot, 'package.json')).resolve.paths('x') ?? [];
+    const names = new Set<string>();
+    for (const modules of lookup) {
+        for (const entry of safeReaddir(modules)) {
+            if (entry.startsWith('.')) continue;
+            if (entry.startsWith('@')) {
+                for (const sub of safeReaddir(join(modules, entry))) names.add(`${entry}/${sub}`);
+            } else names.add(entry);
+        }
     }
-    return names.filter((n) => /^(@codemirror|@lezer|@marijn)\/|^(style-mod|w3c-keyname|crelt|turndown|yaml)$/.test(n));
+    return [...names].filter((n) =>
+        /^(@codemirror|@lezer|@marijn)\/|^(style-mod|w3c-keyname|crelt|turndown|yaml)$/.test(n)
+    );
 }
 
 function safeReaddir(dir: string): string[] {

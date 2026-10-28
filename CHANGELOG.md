@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1 (2026-10-28)
+
 ### Changed
 
 - README: the quick start follows `astro add` for npm and pnpm, and adding a Shell is now one of its

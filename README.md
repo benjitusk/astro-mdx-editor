@@ -20,12 +20,38 @@ re-serialising, so opening and saving a file changes no bytes.
 - **A full keyboard suite.** Cmd-P shows every command. Cmd-Shift-/ shows the cheat sheet.
 - **Dev only.** Nothing from the editor ends up in `astro build`.
 
-## Use it in a site
+## Quick start
 
-Needs Astro 7 with `@astrojs/mdx` 8, and Node 22.18 or later.
+Needs Astro 7 and Node 22.18 or later. In a new site from Astro's blog starter, or in your own:
 
 ```sh
-npm install --save-dev astro-mdx-editor
+npm create astro@latest my-blog -- --template blog
+cd my-blog
+npx astro add astro-mdx-editor
+npm run dev
+```
+
+Then open [localhost:4321/\_\_edit](http://localhost:4321/__edit). With no options, the editor offers every
+folder in `src/content/` that holds `.md` or `.mdx` files, as a collection of the same name, and opens
+entries on a plain page. Components and HTML in entries render through `@astrojs/mdx`, so add it if your
+site doesn't have it (`npx astro add mdx`); the dev server says so when it's missing. In `astro build` the
+editor does nothing, so the built site is the same with or without it.
+
+## Edit inside your layout
+
+A **Shell** puts the editor inside your site's own page, so you write in your real fonts, widths and
+colours. It's a small component that renders `<slot />` inside your post layout. For the blog starter:
+
+```astro
+---
+// src/mdx-editor/Shell.astro
+import { getEntry } from 'astro:content';
+import BlogPost from '../layouts/BlogPost.astro';
+const { collection, id } = Astro.props;
+const entry = await getEntry(collection, id);
+---
+
+<BlogPost {...entry.data}><slot /></BlogPost>
 ```
 
 ```js
@@ -39,27 +65,15 @@ export default defineConfig({
         mdx(),
         mdxEditor({
             shell: './src/mdx-editor/Shell.astro',
-            globals: './src/mdx-editor/globals.ts',
-            collections: { essays: {} },
+            // pageUrl links each entry to its live page, shown beside the editor with Cmd-\.
+            collections: { blog: { pageUrl: (id) => `/blog/${id}/` } },
         }),
     ],
 });
 ```
 
-```astro
----
-// src/mdx-editor/Shell.astro: wrap the editor in your page chrome and Prose.
-import { getEntry } from 'astro:content';
-import Essay from '../layouts/Essay.astro';
-const { collection, id } = Astro.props;
-const entry = await getEntry(collection, id);
----
-
-<Essay essay={entry} editing><slot /></Essay>
-```
-
-Then run `astro dev` and open `/__edit`. In `astro build` the integration does nothing, so the built site
-is the same with or without it.
+Options with a mistake (a typo, a missing file) turn the editor off with a message naming the option;
+the rest of the dev server keeps running.
 
 Sites whose entries import their components (rather than using `globals`) need nothing extra: the editor
 page imports every component the collection's entries import, so their CSS loads. Framework components
@@ -70,17 +84,17 @@ rendered for the editor, e.g. `<h1 data-mdx-field={editing ? 'title' : undefined
 
 ## Options
 
-| Option                 | Meaning                                                                                                                                                                                     |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `shell`                | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props.                                                                      |
-| `globals`              | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads.                                                       |
-| `collections`          | `{ [name]: { dir?, pageUrl?, newEntry?, images? } }`. `dir` defaults to `src/content/<name>`. `pageUrl(id)` is the live page; `newEntry(title)` the frontmatter of a new entry (see below). |
-| `typography`           | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                                                                          |
-| `keymap`               | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                                                                           |
-| `callouts`             | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site.                                                     |
-| `emoji`                | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.                                                            |
-| `callouts` (extending) | `import { DEFAULT_CALLOUT_TYPES } from 'astro-mdx-editor'`, then `[...DEFAULT_CALLOUT_TYPES, 'console']`.                                                                                   |
-| `images`               | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                                                                      |
+| Option                 | Meaning                                                                                                                                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shell`                | Path to an `.astro` component that renders `<slot/>` inside your layout and `Prose`. Gets `collection` and `id` props. Default: a plain page.                                                                                                                  |
+| `globals`              | Path to a module exporting the components every entry can use without an import. Also imported on the editor page so their CSS loads.                                                                                                                          |
+| `collections`          | `{ [name]: { dir?, pageUrl?, newEntry?, images? } }`. Default: each folder in `src/content/` with `.md` or `.mdx` files. `dir` defaults to `src/content/<name>`. `pageUrl(id)` is the live page; `newEntry(title)` the frontmatter of a new entry (see below). |
+| `typography`           | `{ quotes, dashes, ellipsis }`: smart typography while typing (all on by default).                                                                                                                                                                             |
+| `keymap`               | `{ [commandId]: key }` overrides, for example `{ 'format.bold': 'Mod-Shift-b' }`.                                                                                                                                                                              |
+| `callouts`             | Callout types (`> [!type]`) to offer, aliases included. Default: satteri-callouts' Obsidian set. Their look is measured from your site.                                                                                                                        |
+| `emoji`                | `{ shortcodes, locale }` as passed to satteri-emoji, so `:shortcode:` previews and completes the same way; `false` turns it off.                                                                                                                               |
+| `callouts` (extending) | `import { DEFAULT_CALLOUT_TYPES } from 'astro-mdx-editor'`, then `[...DEFAULT_CALLOUT_TYPES, 'console']`.                                                                                                                                                      |
+| `images`               | `{ dir, snippet }` for pasted and dropped images, or `false`. Also settable per collection. See below.                                                                                                                                                         |
 
 ### Images
 

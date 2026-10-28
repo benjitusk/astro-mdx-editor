@@ -1,7 +1,7 @@
 /**
  * Round-trip gate: every entry in the given sites must come out of the editor byte for byte.
  *
- *   npm run roundtrip -- ../thoughts ../engineering-notebook
+ *   npm run roundtrip -- <site> [<site>…]
  *
  * Each file is loaded with the editor's full state setup, the cursor is walked through it so every
  * live-preview state is built, and the text that would be saved is compared with the file.

@@ -27,6 +27,12 @@ jobs:
 
             - run: npm ci
             - run: npm test
+              env:
+                  # The commit tests run the editor's own git commands, which need an identity.
+                  GIT_AUTHOR_NAME: ci
+                  GIT_AUTHOR_EMAIL: ci@example.com
+                  GIT_COMMITTER_NAME: ci
+                  GIT_COMMITTER_EMAIL: ci@example.com
             - run: npm run typecheck
 
             - name: Check what's already out

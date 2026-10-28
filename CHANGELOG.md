@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.2 (2026-10-28)
+
+### Changed
+
+- README and changelog examples describe sites in general, using the blog starter's `blog` collection,
+  rather than the sites the editor was first built for.
+
 ## 0.2.1 (2026-10-28)
 
 ### Changed

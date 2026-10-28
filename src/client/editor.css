@@ -50,8 +50,8 @@
 }
 .mdx-editor-status[data-status='error'],
 .mdx-editor-status[data-status='conflict'] {
-    border-color: var(--accent, #b34a31);
-    color: var(--accent, #b34a31);
+    border-color: var(--accent, AccentColor);
+    color: var(--accent, AccentColor);
 }
 /* An upload that failed. */
 .mdx-editor-toast {
@@ -62,7 +62,7 @@
     max-width: min(90vw, 36rem);
     transform: translateX(-50%);
     padding: 8px 12px;
-    border: 1px solid var(--accent, #b34a31);
+    border: 1px solid var(--accent, AccentColor);
     border-radius: 10px;
     background: var(--surface, #fff);
     color: var(--text, #222);
@@ -79,7 +79,7 @@
     align-items: center;
     transform: translateX(-50%);
     padding: 8px 12px;
-    border: 1px solid var(--accent, #b34a31);
+    border: 1px solid var(--accent, AccentColor);
     border-radius: 10px;
     background: var(--surface, #fff);
     color: var(--text, #222);
@@ -408,7 +408,7 @@
     font: 12px/1.5 var(--font-sans, system-ui, sans-serif);
 }
 .mdx-editor-selftest[data-result='fail'] {
-    border-color: var(--accent, #b34a31);
+    border-color: var(--accent, AccentColor);
 }
 .mdx-editor-selftest strong {
     display: block;
@@ -470,12 +470,12 @@
     display: inline;
 }
 .mdx-editor .mdx-error {
-    outline: 1px dashed var(--accent, #b34a31);
+    outline: 1px dashed var(--accent, AccentColor);
 }
 .mdx-editor .mdx-error-badge {
     display: block;
     margin-top: 4px;
-    color: var(--accent, #b34a31);
+    color: var(--accent, AccentColor);
     font: 12px/1.4 var(--font-sans, system-ui, sans-serif);
 }
 .mdx-editor .mdx-raw-toggle {
@@ -498,8 +498,8 @@
     opacity: 1;
 }
 .mdx-editor .mdx-raw-toggle:hover {
-    border-color: var(--accent, #b34a31);
-    color: var(--accent, #b34a31);
+    border-color: var(--accent, AccentColor);
+    color: var(--accent, AccentColor);
 }
 
 /* Frame: the children of the component the cursor is in, as editable text. */
@@ -563,7 +563,7 @@
 .mdx-editor .mdx-chip b {
     padding: 1px 8px;
     border-radius: 999px;
-    background: var(--accent, #b34a31);
+    background: var(--accent, AccentColor);
     color: var(--on-accent, #fff);
     font-weight: 600;
 }
@@ -849,7 +849,7 @@
     text-overflow: ellipsis;
 }
 .mdx-props-name i {
-    color: var(--accent, #b34a31);
+    color: var(--accent, AccentColor);
     font-style: normal;
 }
 .mdx-props-row small {
@@ -870,12 +870,12 @@
 }
 .mdx-props-row input[type='checkbox'] {
     justify-self: start;
-    accent-color: var(--accent, #b34a31);
+    accent-color: var(--accent, AccentColor);
 }
 .mdx-props-row input:focus-visible,
 .mdx-props-row select:focus-visible {
-    border-color: var(--accent, #b34a31);
-    outline: 2px solid color-mix(in srgb, var(--accent, #b34a31) 25%, transparent);
+    border-color: var(--accent, AccentColor);
+    outline: 2px solid color-mix(in srgb, var(--accent, AccentColor) 25%, transparent);
 }
 .mdx-props-code input {
     font: 12px var(--font-mono, ui-monospace, monospace) !important;
@@ -908,8 +908,8 @@
     cursor: pointer;
 }
 .mdx-props-foot button:last-child {
-    border-color: var(--accent, #b34a31);
-    background: var(--accent, #b34a31);
+    border-color: var(--accent, AccentColor);
+    background: var(--accent, AccentColor);
     color: var(--on-accent, #fff);
 }
 .mdx-editor-palette li small {
@@ -980,7 +980,7 @@
     outline-color: var(--border-strong, #ccc);
 }
 .mdx-page-field:focus {
-    outline: 1px solid var(--accent, #b34a31);
+    outline: 1px solid var(--accent, AccentColor);
 }
 .mdx-page-field:empty::before {
     content: attr(data-mdx-field);
@@ -1060,7 +1060,7 @@
     font: 12px var(--font-mono, ui-monospace, monospace);
 }
 .mdx-fm-key i {
-    color: var(--accent, #b34a31);
+    color: var(--accent, AccentColor);
     font-style: normal;
 }
 .mdx-fm-extra {
@@ -1099,12 +1099,12 @@
     resize: none;
 }
 .mdx-fm-row :is(input, select, textarea):focus-visible {
-    border-color: var(--accent, #b34a31);
-    outline: 2px solid color-mix(in srgb, var(--accent, #b34a31) 25%, transparent);
+    border-color: var(--accent, AccentColor);
+    outline: 2px solid color-mix(in srgb, var(--accent, AccentColor) 25%, transparent);
 }
 .mdx-fm-row input[type='checkbox'],
 .mdx-fm-row input[type='range'] {
-    accent-color: var(--accent, #b34a31);
+    accent-color: var(--accent, AccentColor);
 }
 .mdx-fm-boolean {
     grid-template-columns: 1fr auto;
@@ -1270,7 +1270,7 @@ html.mdx-pane-open-wide body {
     padding: 6px 14px;
     border: 0;
     border-radius: 6px;
-    background: var(--accent, #b34a31);
+    background: var(--accent, AccentColor);
     color: var(--accent-contrast, #fff);
     font: 600 13px/1.4 var(--font-sans, system-ui, sans-serif);
     cursor: pointer;

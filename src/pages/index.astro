@@ -14,6 +14,12 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
         <meta name='robots' content='noindex' />
         <title>Editor</title>
         <style>
+            /* The editor's own page, not the site's: neutral, from the browser's system colours. */
+            :root {
+                color-scheme: light dark;
+                --muted: color-mix(in srgb, CanvasText 60%, Canvas);
+                --rule: color-mix(in srgb, CanvasText 14%, Canvas);
+            }
             body {
                 max-width: 40rem;
                 margin: 3rem auto;
@@ -21,8 +27,8 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
                 font:
                     16px/1.6 system-ui,
                     sans-serif;
-                color: #2a2622;
-                background: #f7f2e9;
+                color: CanvasText;
+                background: Canvas;
             }
             h1 {
                 font-size: 1.5rem;
@@ -31,7 +37,7 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
                 margin-top: 2rem;
                 font-size: 1rem;
                 text-transform: capitalize;
-                color: #625a50;
+                color: var(--muted);
             }
             ul {
                 padding: 0;
@@ -41,10 +47,10 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
                 display: flex;
                 gap: 1rem;
                 padding: 0.4rem 0;
-                border-bottom: 1px solid #e4dbcc;
+                border-bottom: 1px solid var(--rule);
             }
             a {
-                color: #b34a31;
+                color: LinkText;
             }
             form {
                 display: flex;
@@ -54,7 +60,7 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
             form input {
                 flex: 1;
                 padding: 0.35rem 0.6rem;
-                border: 1px solid #d8cdb9;
+                border: 1px solid var(--rule);
                 border-radius: 6px;
                 font: inherit;
                 color: inherit;
@@ -65,30 +71,18 @@ const byCollection = Map.groupBy(list, (e: { collection: string }) => e.collecti
                 border: 0;
                 border-radius: 6px;
                 font: inherit;
-                color: #fff;
-                background: #b34a31;
+                color: AccentColorText;
+                background: AccentColor;
                 cursor: pointer;
             }
             .error {
-                color: #b34a31;
+                color: color-mix(in srgb, red 70%, CanvasText);
                 font-size: 0.875rem;
             }
             .page {
                 margin-left: auto;
-                color: #8a8175;
+                color: var(--muted);
                 font-size: 0.875rem;
-            }
-            @media (prefers-color-scheme: dark) {
-                body {
-                    color: #ece6dc;
-                    background: #1d1a17;
-                }
-                li {
-                    border-color: #3a342d;
-                }
-                a {
-                    color: #e08a6f;
-                }
             }
         </style>
     </head>

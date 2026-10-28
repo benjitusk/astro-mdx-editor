@@ -498,9 +498,9 @@ export function togglePanel(view: EditorView): boolean {
 // ---------- fields in the page ----------
 
 /**
- * Elements the site marks with `data-mdx-field` (in thoughts, the essay header's title and dek) edit
- * that field in place: typing writes the YAML, and changes to the YAML (the panel, undo, raw edits)
- * show in the element. Enter moves on to the next field, then to the body.
+ * Elements the site marks with `data-mdx-field` (a post's title or dek, say) edit that field in place:
+ * typing writes the YAML, and changes to the YAML (the panel, undo, raw edits) show in the element.
+ * Enter moves on to the next field, then to the body.
  */
 const pageFields = ViewPlugin.fromClass(
     class {

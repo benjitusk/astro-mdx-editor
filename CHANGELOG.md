@@ -86,8 +86,8 @@
   inputs with a slider for bounded numbers, checkboxes, comma lists, nested objects, YAML for anything
   else, each field's JSDoc from the content config, required and range messages, and × to remove an
   optional field. Keys outside the schema are listed as YAML.
-- Page fields: elements marked `data-mdx-field` (the essay's title and dek in thoughts) edit their
-  frontmatter field in place; Enter moves to the next field, then the body; Cmd-Z undoes in the editor.
+- Page fields: elements marked `data-mdx-field` (a post's title or dek, say) edit their frontmatter field
+  in place; Enter moves to the next field, then the body; Cmd-Z undoes in the editor.
 - The frontmatter shows as a one-line summary bar; `</>` or a search match inside it shows the YAML,
   and the cursor can't land in front of it.
 - Frontmatter edits rewrite only the field's own text (`src/client/frontmatter.ts`), keeping
@@ -102,23 +102,21 @@
 - Images show in the live preview: the image alone with the cursor elsewhere, its source with the image
   under it when the cursor is on it. Relative paths load through Vite's `/@fs/`.
 
-- Sites whose entries import their components (the notebook): a generated `virtual:mdx-editor/styles`
-  module imports every component the collections' entries import, so their CSS loads on the editor page.
+- Sites whose entries import their components: a generated `virtual:mdx-editor/styles` module imports
+  every component the collections' entries import, so their CSS loads on the editor page.
 - Framework components (React, Preact, Vue, Svelte, Solid) render: the site's framework integrations are
   detected and their server renderers registered with the Container API. They render as static HTML.
 - `DEFAULT_CALLOUT_TYPES` is exported, to add a site's own callout types (`[...DEFAULT_CALLOUT_TYPES, 'console']`).
 - Component tags parse as MDX reads them (`src/client/mdxblocks.ts`): a lone opening tag starts a block
-  whose children are parsed relative to their own indentation (the notebook's 4-space-indented Callout
-  children, lists included), text right after a tag is Markdown, and self-closing, closing and
-  multi-line tags are blocks of their own lines that end a paragraph above them.
+  whose children are parsed relative to their own indentation (4-space-indented Callout children, lists
+  included), text right after a tag is Markdown, and self-closing, closing and multi-line tags are blocks
+  of their own lines that end a paragraph above them.
 - Soft-wrapped paragraphs flow as one paragraph, as on the page: a line break inside a paragraph shows
   as a space and steps and deletes as one.
 - Tables are drawn as tables with the cursor elsewhere, and show their source (monospace) with it inside;
   a click on a cell puts the caret in that cell.
 - Task list markers (`[ ]`, `[x]`) are checkboxes; a click toggles the source.
 - Components and code blocks in list items sit at the item's indent.
-- engineering-notebook is set up: Shell around `BlogPost`, the title edited in place, `console` callouts,
-  and images inserted as an import plus `<Figure>`.
 
 - New entries: a form per collection on `/__edit` (`POST /__edit/api/new`) writes the title as a slug with
   the collection's `newEntry(title)` frontmatter (dates as `YYYY-MM-DD`, missing required fields filled)

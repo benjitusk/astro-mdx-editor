@@ -1,6 +1,6 @@
 {
     "name": "astro-mdx-editor",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "description": "A live-preview MDX editor that runs inside an Astro site's dev server.",
     "license": "MIT",
     "author": "Benji Tusk",

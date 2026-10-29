@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0 (2026-10-29)
+
 ### Added
 
 - "Edit this page" in Astro's dev toolbar: on a page that shows an entry, a click opens it in the editor.

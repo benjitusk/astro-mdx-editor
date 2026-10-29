@@ -8,7 +8,7 @@ import { mountApi } from './server/api.ts';
 import { loadEmojiTable, type EmojiTable } from './server/emoji.ts';
 import { discoverCollections, entryForPath, listEntries, resolveCollections } from './server/entries.ts';
 import { checkOptions } from './server/options.ts';
-import { answerPageQueries } from './server/pages.ts';
+import { answerPageQueries, TOOLBAR_APP_ID } from './server/pages.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
@@ -140,7 +140,7 @@ export default function mdxEditor(siteOptions: MdxEditorOptions = {}): AstroInte
                     prerender: false,
                 });
                 addDevToolbarApp({
-                    id: 'astro-mdx-editor',
+                    id: TOOLBAR_APP_ID,
                     name: 'Edit this page',
                     icon: EDIT_ICON,
                     entrypoint: siblingModule('./client/toolbar', import.meta.url),

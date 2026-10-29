@@ -1,6 +1,7 @@
 import type { ViteDevServer, WebSocketClient } from 'vite';
 import type { EntryFile } from './entries.ts';
 
+export const TOOLBAR_APP_ID = 'astro-mdx-editor';
 export const PAGE_QUERY = 'mdx-editor:page-entries';
 export const PAGE_ANSWER = 'mdx-editor:page-entries-answer';
 

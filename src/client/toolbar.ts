@@ -1,14 +1,19 @@
 import type { DevToolbarApp } from 'astro';
-import { PAGE_ANSWER, PAGE_QUERY, type EditedEntry, type PageEntry } from '../server/pages.ts';
+import { PAGE_ANSWER, PAGE_QUERY, TOOLBAR_APP_ID, type EditedEntry, type PageEntry } from '../server/pages.ts';
 
 /**
  * "Edit this page" in Astro's dev toolbar. On a page that shows an entry (src/server/pages.ts decides
  * which), the app's icon gets a dot and a click opens that entry in the editor. Anywhere else, or when
  * the page could be one of several entries, it opens a window to choose from. In the editor itself, it
- * goes the other way: a click opens the entry's published page.
+ * goes the other way: a click opens the entry's published page, and the button says so.
  */
 
 const editorUrl = (e: PageEntry) => `/__edit/${e.collection}/${e.id}`;
+
+/** The button's look in the editor: an eye, drawn like the pencil (24px, currentColor). */
+const VIEW_NAME = 'View this page';
+const VIEW_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 
 const app: DevToolbarApp = {
     init(canvas, app, server) {
@@ -24,6 +29,7 @@ const app: DevToolbarApp = {
             if (data.path !== asked) return;
             entries = data.entries;
             editing = data.editing;
+            relabel(editing !== null);
             const linked = editing ? editing.url !== null : entries.length > 0;
             app.toggleNotification(linked ? { state: true, level: 'info' } : { state: false });
         });
@@ -57,6 +63,25 @@ const app: DevToolbarApp = {
 
 export default app;
 
+let pencil: { name: string; icon: string } | null = null;
+
+/**
+ * Shows the eye and "View this page" in the editor, the pencil elsewhere. Astro's toolbar has no API for
+ * an app's icon or name, so this edits the app's button in the toolbar's shadow DOM; if Astro changes
+ * that markup, the button just keeps the pencil.
+ */
+function relabel(viewing: boolean) {
+    const button = document
+        .querySelector('astro-dev-toolbar')
+        ?.shadowRoot?.querySelector(`button[data-app-id="${TOOLBAR_APP_ID}"]`);
+    const icon = button?.querySelector(':scope > .icon > svg');
+    const tooltip = button?.querySelector('.item-tooltip');
+    if (!icon || !tooltip) return;
+    pencil ??= { name: tooltip.textContent ?? '', icon: icon.outerHTML };
+    tooltip.textContent = viewing ? VIEW_NAME : pencil.name;
+    icon.outerHTML = viewing ? VIEW_ICON : pencil.icon;
+}
+
 /** A toolbar window with the app's styles and a title. */
 function toolbarWindow(heading: string): HTMLElement {
     const win = document.createElement('astro-dev-toolbar-window');
@@ -76,7 +101,7 @@ function toolbarWindow(heading: string): HTMLElement {
 
 /** In the editor, for an entry whose collection has no `pageUrl`: there's no page to go back to. */
 function unpublished(entry: EditedEntry): HTMLElement {
-    const win = toolbarWindow('View this page');
+    const win = toolbarWindow(VIEW_NAME);
     const option = document.createElement('code');
     option.textContent = 'pageUrl';
     const note = document.createElement('p');

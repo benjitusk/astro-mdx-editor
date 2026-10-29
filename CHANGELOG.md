@@ -9,8 +9,8 @@
 
 ### Changed
 
-- In the editor, the dev toolbar's pencil goes the other way: a click opens the entry's published page
-  (from `pageUrl`).
+- In the editor, the dev toolbar's pencil goes the other way: it becomes an eye, "View this page", and a
+  click opens the entry's published page (from `pageUrl`).
 
 ## 0.3.0 (2026-10-29)
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.1 (2026-10-29)
+
 ### Added
 
 - The live page (Cmd-\\) scrolls with the editor, and the editor with it when you scroll the page. Blocks

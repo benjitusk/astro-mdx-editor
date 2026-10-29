@@ -278,3 +278,18 @@ compiled MDX on every request; routes are almost always built from the id (`[...
 so the path is a good enough guess, and it also covers pages `pageUrl` doesn't name (a site whose
 `pageUrl` is its drafts route still links its published route). The socket is Vite's own, already
 limited to the dev server's pages, and it only reveals entry ids, so it carries no token.
+
+## 32. The live page scroll-syncs by matching block text (2026-10-29)
+
+**Decision.** With the live page open, the editor and the page scroll together. When the page loads, its
+headings, paragraphs, list items and the like are matched to the source by the start of their text
+(normalised as for click mapping, unique in the source, and in source order), which gives pairs of
+heights. The side being scrolled maps the point it tracks through those pairs and scrolls the other
+side to it. The point slides from the top of the viewport to its bottom as the side scrolls from start to
+end, so the tops and the ends line up exactly. Whichever side was last wheeled, keyed, clicked or touched
+leads; the other's scroll events are ignored.
+**Why.** Proportional scrolling drifts, because the page has its own header and footer and components
+render taller or shorter than their source. Text matching needs nothing from the site's markup (no source
+positions in the rendered HTML) and reuses the click mapping's normalisation. Text the source doesn't
+have (navigation, a component's chrome) simply isn't matched. Following the last input rather than
+ignoring our own scroll events avoids echoes without timing guesses.

@@ -97,6 +97,47 @@ export function sourceOffsetFor(source: string, rendered: string, at: number): n
     return null;
 }
 
+/**
+ * Where each rendered block (a heading, paragraph, list item…) starts in the source, for lining the live page
+ * up with the editor: the start of its text when that's unique in the source, else null. Blocks out of
+ * source order (a matched sidebar or footer) are dropped too, keeping the longest run that is in order.
+ */
+export function blockOffsets(source: string, blocks: readonly string[]): (number | null)[] {
+    const src = normaliseSource(source);
+    const offsets = blocks.map((block) => {
+        const text = normaliseRendered(block).text.trimEnd();
+        if (text.length < 6) return null;
+        for (let len = 40; ; len *= 2) {
+            const hits = occurrences(src.text, text.slice(0, len));
+            if (hits.length === 1) return src.map[hits[0]];
+            if (!hits.length || len >= text.length) return null;
+        }
+    });
+    return inOrder(offsets);
+}
+
+/** Only the longest strictly increasing run of offsets, the rest null. */
+function inOrder(offsets: (number | null)[]): (number | null)[] {
+    // Patience sorting: tails[k] ends the best run of length k + 1 so far, prev links each run back.
+    const tails: number[] = [];
+    const prev = offsets.map(() => -1);
+    offsets.forEach((o, i) => {
+        if (o === null) return;
+        let lo = 0;
+        let hi = tails.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (offsets[tails[mid]]! < o) lo = mid + 1;
+            else hi = mid;
+        }
+        prev[i] = lo > 0 ? tails[lo - 1] : -1;
+        tails[lo] = i;
+    });
+    const out = offsets.map((): number | null => null);
+    for (let i = tails.at(-1) ?? -1; i >= 0; i = prev[i]) out[i] = offsets[i];
+    return out;
+}
+
 /** The text of rendered DOM with block boundaries as spaces, and where a DOM point falls in it. */
 export function renderedText(root: Element, point: { node: Node; offset: number } | null) {
     let text = '';

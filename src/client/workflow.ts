@@ -6,10 +6,12 @@ import type { ClientConfig } from '../types.ts';
 import type { Api } from './api.ts';
 import { h } from './dom.ts';
 import type { Saver } from './save.ts';
+import { scrollSync } from './scrollsync.ts';
 
 /**
  * The writing workflow's side panes, one open at a time: the scratchpad (a note per entry, kept only in
- * this browser), changes since the last commit with a Commit button, and the published page live.
+ * this browser), changes since the last commit with a Commit button, and the published page live, scrolled
+ * along with the editor.
  */
 
 let open: { name: string; close: () => void } | null = null;
@@ -216,7 +218,14 @@ export function livePage(cfg: ClientConfig) {
         const p = pane('live', 'Page', true, view);
         if (!p) return true;
         // The page reloads itself after each save (Astro's dev reload reaches it like any tab).
-        p.body.append(h('iframe', { class: 'mdx-live', src: cfg.pageUrl, title: 'The published page' }));
+        const frame = h('iframe', { class: 'mdx-live', src: cfg.pageUrl, title: 'The published page' });
+        p.body.append(frame);
+        const stop = scrollSync(view, frame);
+        const close = p.close;
+        open!.close = () => {
+            stop();
+            close();
+        };
         view.focus();
         return true;
     };

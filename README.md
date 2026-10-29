@@ -16,7 +16,7 @@ re-serialising, so opening and saving a file changes no bytes.
 - **Images.** Paste or drop an image: it's saved into your site and inserted the way your site writes images.
 - **Writing workflow.** New entries from `/__edit`, a word count, an outline (Cmd-Shift-O), focus mode
   (Cmd-Alt-.), a scratchpad per entry (Cmd-J), the entry's changes since the last commit with a Commit
-  button (Cmd-Shift-G), the published page beside the editor (Cmd-\\), and quick open (Cmd-O).
+  button (Cmd-Shift-G), the published page beside the editor, scrolled along with it (Cmd-\\), and quick open (Cmd-O).
 - **Edit this page.** On any page of your site that shows an entry, the pencil in Astro's dev toolbar
   opens it in the editor.
 - **A full keyboard suite.** Cmd-P shows every command. Cmd-Shift-/ shows the cheat sheet.

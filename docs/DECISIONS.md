@@ -264,3 +264,17 @@ drift apart. Each step checks what is already out, so a rerun, or a version publ
 finishes the rest instead of failing. Trusted publishing needs no npm token in the repo, and npm adds
 provenance. The pack-and-install check in the README stays a manual step before the bump: it needs a real
 site and a browser.
+
+## 31. "Edit this page" is a dev toolbar app that guesses from the URL (2026-10-29)
+
+**Decision.** Every page of the site gets an app in Astro's dev toolbar. The server names the entry a page
+shows: the one whose `pageUrl` is that page, else one whose id is the end of the path (preferring
+entries whose collection name is also in it). A click opens that entry's editor; with no match, or a tie,
+the app opens a window to choose from. The question and answer go over the HMR socket, answered to the
+asking tab only.
+**Why.** The toolbar is already on every dev page, so the link needs no markup in the site and can't
+collide with its layout. Knowing for certain which entry a page rendered would mean wrapping the site's
+compiled MDX on every request; routes are almost always built from the id (`[...slug]` from `entry.id`),
+so the path is a good enough guess, and it also covers pages `pageUrl` doesn't name (a site whose
+`pageUrl` is its drafts route still links its published route). The socket is Vite's own, already
+limited to the dev server's pages, and it only reveals entry ids, so it carries no token.

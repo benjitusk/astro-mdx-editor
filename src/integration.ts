@@ -6,8 +6,9 @@ import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mountApi } from './server/api.ts';
 import { loadEmojiTable, type EmojiTable } from './server/emoji.ts';
-import { discoverCollections, entryForPath, resolveCollections } from './server/entries.ts';
+import { discoverCollections, entryForPath, listEntries, resolveCollections } from './server/entries.ts';
 import { checkOptions } from './server/options.ts';
+import { answerPageQueries } from './server/pages.ts';
 import { routeFullReloads } from './server/reload.ts';
 import { createRegistry } from './server/registry.ts';
 import { createRenderer } from './server/render.ts';
@@ -22,6 +23,9 @@ const page = (name: string) => fileURLToPath(new URL(`./pages/${name}`, import.m
 /** The Shell when the site sets none: a plain page, without the site's layout. */
 const defaultShell = fileURLToPath(new URL('./shell/DefaultShell.astro', import.meta.url));
 /** Shown wherever a render would fail because the site has no MDX integration. */
+/** The toolbar app's icon: a pencil, drawn like Astro's own (24px, currentColor). */
+const EDIT_ICON =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.86 4.49a2.1 2.1 0 0 1 2.97 2.97L8.25 19.04 4.5 19.5l.46-3.75z"/><path d="m15 6.35 2.65 2.65"/></svg>';
 const NO_MDX =
     '@astrojs/mdx is not in the integrations, so components and HTML in entries can’t render here (Markdown still edits). Add it with `npx astro add mdx`.';
 
@@ -97,7 +101,7 @@ export default function mdxEditor(siteOptions: MdxEditorOptions = {}): AstroInte
     return {
         name: 'astro-mdx-editor',
         hooks: {
-            'astro:config:setup': ({ command, config, injectRoute, updateConfig, logger }) => {
+            'astro:config:setup': ({ command, config, injectRoute, addDevToolbarApp, updateConfig, logger }) => {
                 if (command !== 'dev') return;
                 const root = fileURLToPath(config.root);
                 // Bad options turn the editor off, never the site's dev server.
@@ -134,6 +138,12 @@ export default function mdxEditor(siteOptions: MdxEditorOptions = {}): AstroInte
                     pattern: '/__edit/[collection]/[...id]',
                     entrypoint: page('edit.astro'),
                     prerender: false,
+                });
+                addDevToolbarApp({
+                    id: 'astro-mdx-editor',
+                    name: 'Edit this page',
+                    icon: EDIT_ICON,
+                    entrypoint: siblingModule('./client/toolbar', import.meta.url),
                 });
                 updateConfig({
                     vite: {
@@ -183,6 +193,11 @@ export default function mdxEditor(siteOptions: MdxEditorOptions = {}): AstroInte
                         return (emoji ??= loadEmojiTable(root, options.emoji ?? {}));
                     },
                 });
+                answerPageQueries(
+                    server,
+                    () => listEntries(collections),
+                    (collection, id) => options.collections?.[collection]?.pageUrl?.(id) ?? null
+                );
                 // Astro rewrites .astro/data-store.json after every content change; that is not code.
                 const generated = join(root, '.astro') + sep;
                 routeFullReloads(

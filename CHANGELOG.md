@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- "Edit this page" in Astro's dev toolbar: on a page that shows an entry, a click opens it in the editor.
+  The page is matched by `pageUrl`, or by a path that ends in the entry's id.
+
 ## 0.2.2 (2026-10-28)
 
 ### Changed

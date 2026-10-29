@@ -18,7 +18,7 @@ re-serialising, so opening and saving a file changes no bytes.
   (Cmd-Alt-.), a scratchpad per entry (Cmd-J), the entry's changes since the last commit with a Commit
   button (Cmd-Shift-G), the published page beside the editor, scrolled along with it (Cmd-\\), and quick open (Cmd-O).
 - **Edit this page.** On any page of your site that shows an entry, the pencil in Astro's dev toolbar
-  opens it in the editor.
+  opens it in the editor. In the editor, it opens the published page.
 - **A full keyboard suite.** Cmd-P shows every command. Cmd-Shift-/ shows the cheat sheet.
 - **Dev only.** Nothing from the editor ends up in `astro build`.
 
@@ -104,7 +104,8 @@ the rest of the dev server keeps running.
 
 The dev toolbar's pencil finds the entry a page shows from the URL: the entry whose `pageUrl` is that
 page, or else one whose id the path ends with (`/blog/first-post/` for `first-post` in `blog`). Routes
-built from `entry.id`, as in Astro's starters, need no setup.
+built from `entry.id`, as in Astro's starters, need no setup. Going back from the editor to the page
+needs `pageUrl`.
 
 Sites whose entries import their components (rather than using `globals`) need nothing extra: the editor
 page imports every component the collection's entries import, so their CSS loads. Framework components

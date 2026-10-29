@@ -9,6 +9,11 @@ export interface PageEntry {
     id: string;
 }
 
+/** An editor page's entry, and the published page it links back to (null without a `pageUrl`). */
+export interface EditedEntry extends PageEntry {
+    url: string | null;
+}
+
 /** A page path without its trailing slash, `index.html` or `.html`, and with `%xx` decoded. */
 function normalise(path: string): string {
     let p = path.split(/[?#]/)[0];
@@ -46,6 +51,17 @@ export function entriesForPage(
     return named.length ? named : suffix;
 }
 
+/** On an editor page (`/__edit/<collection>/<id>`), the entry it edits and that entry's published page. */
+export function editedEntry(
+    path: string,
+    pageUrl: (collection: string, id: string) => string | null
+): EditedEntry | null {
+    const match = /^\/__edit\/([^/]+)\/(.+)$/.exec(normalise(path));
+    if (!match) return null;
+    const [, collection, id] = match;
+    return { collection, id, url: pageUrl(collection, id) };
+}
+
 /**
  * Answers the toolbar app's question over the HMR socket, to the tab that asked only. The answer
  * carries the path, so a tab that has navigated since ignores an old one.
@@ -58,6 +74,10 @@ export function answerPageQueries(
     server.ws.on(PAGE_QUERY, async (data: { path?: unknown }, client: WebSocketClient) => {
         if (typeof data?.path !== 'string') return;
         const all = (await entries()).map(({ collection, id }) => ({ collection, id }));
-        client.send(PAGE_ANSWER, { path: data.path, entries: entriesForPage(data.path, all, pageUrl) });
+        client.send(PAGE_ANSWER, {
+            path: data.path,
+            entries: entriesForPage(data.path, all, pageUrl),
+            editing: editedEntry(data.path, pageUrl),
+        });
     });
 }

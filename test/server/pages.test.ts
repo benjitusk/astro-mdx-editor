@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entriesForPage } from '../../src/server/pages.ts';
+import { editedEntry, entriesForPage } from '../../src/server/pages.ts';
 
 const entries = [
     { collection: 'essays', id: 'judging' },
@@ -39,5 +39,32 @@ describe('entriesForPage', () => {
         expect(entriesForPage('/', entries, noUrls)).toEqual([]);
         expect(entriesForPage('/__edit/essays/judging', entries, noUrls)).toEqual([]);
         expect(entriesForPage('/__edit', entries, noUrls)).toEqual([]);
+    });
+});
+
+describe('editedEntry', () => {
+    it('names the entry an editor page edits, and its published page', () => {
+        expect(editedEntry('/__edit/essays/judging', drafts)).toEqual({
+            collection: 'essays',
+            id: 'judging',
+            url: '/drafts/judging/',
+        });
+        expect(editedEntry('/__edit/essays/2024/notes/?selftest', drafts)).toEqual({
+            collection: 'essays',
+            id: '2024/notes',
+            url: '/drafts/2024/notes/',
+        });
+    });
+    it('has no published page without a pageUrl', () => {
+        expect(editedEntry('/__edit/projects/robot', drafts)).toEqual({
+            collection: 'projects',
+            id: 'robot',
+            url: null,
+        });
+    });
+    it('is null away from an entry editor', () => {
+        expect(editedEntry('/__edit', drafts)).toBeNull();
+        expect(editedEntry('/__edit/essays', drafts)).toBeNull();
+        expect(editedEntry('/essays/judging/', drafts)).toBeNull();
     });
 });

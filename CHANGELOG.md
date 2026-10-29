@@ -7,6 +7,11 @@
 - The live page (Cmd-\\) scrolls with the editor, and the editor with it when you scroll the page. Blocks
   are lined up by their text, so headings and paragraphs stay level on both sides.
 
+### Changed
+
+- In the editor, the dev toolbar's pencil goes the other way: a click opens the entry's published page
+  (from `pageUrl`).
+
 ## 0.3.0 (2026-10-29)
 
 ### Added

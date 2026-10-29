@@ -278,6 +278,8 @@ compiled MDX on every request; routes are almost always built from the id (`[...
 so the path is a good enough guess, and it also covers pages `pageUrl` doesn't name (a site whose
 `pageUrl` is its drafts route still links its published route). The socket is Vite's own, already
 limited to the dev server's pages, and it only reveals entry ids, so it carries no token.
+**Later (same day).** On an editor page the app goes the other way, to the entry's `pageUrl`. Without
+one it explains instead of guessing: the id-suffix match can't be run backwards to a route.
 
 ## 32. The live page scroll-syncs by matching block text (2026-10-29)
 
